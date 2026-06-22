@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src\GiglingBroadcastDeck.Core\GiglingBroadcastDeck.Core.csproj" />
+  <Project Path="src\GiglingBroadcastDeck.App\GiglingBroadcastDeck.App.csproj" />
+  <Project Path="tests\GiglingBroadcastDeck.Tests\GiglingBroadcastDeck.Tests.csproj" />
+</Solution>
