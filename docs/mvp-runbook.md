@@ -89,6 +89,32 @@ Expected result:
 
 - Browser overlay changes without reload.
 - `/api/overlay-state` reflects the selected mode and race data.
+- Overlay preset, position, lifecycle text, source note, and rundown items are visible in `/api/overlay-state`.
+
+## Explore Approval Gate
+
+1. Open the `Explore` tab.
+2. Click `Refresh Explore`.
+
+Expected result:
+
+- Scheduled races, global stats, and ELO leaderboard load when the public endpoints are available.
+- If one endpoint is unavailable, the tab still shows partial data from the other endpoints.
+- The status text clearly names unavailable or malformed endpoint data.
+
+## Rundown Approval Gate
+
+1. Select a race.
+2. Click `Pin Selected Race`.
+3. Add a custom ticker line.
+4. Click `Show Ticker`.
+5. Click `Clear Rundown`.
+
+Expected result:
+
+- Pinned items appear in the rundown list.
+- The ticker overlay prefers rundown items over generated race ticker text.
+- Clearing the rundown removes pinned overlay ticker items.
 
 ## Discord Summary Approval Gate
 
@@ -107,3 +133,15 @@ Expected result:
 - Malformed API JSON shows error or stale-data status instead of crashing.
 - No wallet, signing, private key, auth-token, gameplay POST, auto-play, or auto-join code exists.
 - External JSON is parsed through tolerant mapping and raw JSON is preserved for transparency.
+- No authenticated REST endpoints, gameplay POST endpoints, wallet logic, transaction signing, or OBS WebSocket control exists.
+
+## Demo Publish
+
+```powershell
+.\scripts\publish-win-x64.ps1
+```
+
+Expected result:
+
+- A self-contained Windows publish folder is created under `src\GiglingBroadcastDeck.App\bin\Release\net10.0-windows\win-x64\publish`.
+- `wwwroot` and `appsettings.json` are included so the overlay and runtime configuration remain inspectable.

@@ -64,6 +64,40 @@ public static class JsonElementExtensions
         return null;
     }
 
+    public static bool? GetBoolValue(this JsonElement element)
+    {
+        if (element.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return element.GetBoolean();
+        }
+
+        if (element.ValueKind == JsonValueKind.String &&
+            bool.TryParse(element.GetString(), out var value))
+        {
+            return value;
+        }
+
+        return null;
+    }
+
+    public static DateTimeOffset? GetDateTimeOffsetValue(this JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.String &&
+            DateTimeOffset.TryParse(element.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed))
+        {
+            return parsed;
+        }
+
+        if (element.ValueKind == JsonValueKind.Number && element.TryGetInt64(out var unix))
+        {
+            return unix > 10_000_000_000
+                ? DateTimeOffset.FromUnixTimeMilliseconds(unix)
+                : DateTimeOffset.FromUnixTimeSeconds(unix);
+        }
+
+        return null;
+    }
+
     public static decimal? GetDecimalValue(this JsonElement element)
     {
         decimal? value = element.ValueKind switch
@@ -111,6 +145,16 @@ public static class JsonElementExtensions
 
         return root.ValueKind == JsonValueKind.Object ? [root] : [];
     }
+
+    public static IReadOnlyList<decimal> GetDecimalArrayValue(this JsonElement element) =>
+        element.ValueKind == JsonValueKind.Array
+            ? element.EnumerateArray().Select(item => item.GetDecimalValue()).Where(item => item.HasValue).Select(item => item!.Value).ToArray()
+            : [];
+
+    public static IReadOnlyList<int> GetIntArrayValue(this JsonElement element) =>
+        element.ValueKind == JsonValueKind.Array
+            ? element.EnumerateArray().Select(item => item.GetIntValue()).Where(item => item.HasValue).Select(item => item!.Value).ToArray()
+            : [];
 
     private static bool TryFindByPath(JsonElement element, string path, out JsonElement value)
     {

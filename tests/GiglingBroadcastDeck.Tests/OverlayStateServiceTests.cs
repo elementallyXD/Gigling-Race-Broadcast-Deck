@@ -36,4 +36,18 @@ public sealed class OverlayStateServiceTests
         Assert.Equal(OverlayMode.Hidden, state.Mode);
         Assert.Equal("99", state.SelectedRace?.RaceId);
     }
+
+    [Fact]
+    public void SetPresetAndRundown_UpdateOverlaySnapshot()
+    {
+        var service = new OverlayStateService();
+
+        service.SetPreset(OverlayPreset.DataDesk, OverlayPosition.TopRight);
+        var state = service.SetRundown(["Race #1 is open", "Race #2 resolved"]);
+
+        Assert.Equal(OverlayPreset.DataDesk, state.Preset);
+        Assert.Equal(OverlayPosition.TopRight, state.Position);
+        Assert.Equal(["Race #1 is open", "Race #2 resolved"], state.RundownItems);
+        Assert.Equal(["Race #1 is open", "Race #2 resolved"], state.TickerItems);
+    }
 }

@@ -7,8 +7,8 @@
         Title="Gigling Broadcast Deck"
         MinHeight="760"
         MinWidth="1180"
-        Height="820"
-        Width="1280"
+        Height="860"
+        Width="1360"
         Background="#10151C"
         Foreground="#F4F7FB">
     <Window.Resources>
@@ -17,8 +17,8 @@
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style TargetType="Button">
-            <Setter Property="Margin" Value="0,0,0,10" />
-            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Padding" Value="12,8" />
             <Setter Property="Background" Value="#27425F" />
             <Setter Property="Foreground" Value="#F4F7FB" />
             <Setter Property="BorderBrush" Value="#3B668E" />
@@ -32,10 +32,19 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="10" />
         </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Margin" Value="0,4,0,10" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
         <Style TargetType="ListBox">
             <Setter Property="Background" Value="#121C27" />
             <Setter Property="Foreground" Value="#F4F7FB" />
             <Setter Property="BorderBrush" Value="#2B3E52" />
+        </Style>
+        <Style x:Key="PanelBorder" TargetType="Border">
+            <Setter Property="Background" Value="#162232" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14" />
         </Style>
     </Window.Resources>
 
@@ -43,14 +52,14 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="220" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="#162232" CornerRadius="16" Padding="18" Margin="0,0,0,16">
+        <Border Grid.Row="0" Style="{StaticResource PanelBorder}" Margin="0,0,0,14">
             <DockPanel LastChildFill="True">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Command="{Binding RefreshRacesCommand}" Content="Refresh Races" Margin="12,0,0,0" />
+                    <Button Command="{Binding RefreshExploreCommand}" Content="Refresh Explore" Margin="12,0,0,0" />
                     <Button Command="{Binding HideOverlayCommand}" Content="Hide Overlay" Margin="12,0,0,0" />
                 </StackPanel>
                 <StackPanel>
@@ -61,110 +70,216 @@
             </DockPanel>
         </Border>
 
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="330" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="300" />
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0" Background="#162232" CornerRadius="14" Padding="14" Margin="0,0,14,0">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Recent Races" FontSize="20" FontWeight="Bold" Margin="0,0,0,12" />
-                    <ListBox ItemsSource="{Binding Races}" SelectedItem="{Binding SelectedRace, Mode=TwoWay}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Padding="10" Margin="0,0,0,8" Background="#1B2B3C" CornerRadius="10">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding RaceId, StringFormat=Race #{0}}" FontWeight="Bold" FontSize="15" />
-                                        <TextBlock Text="{Binding Phase}" Foreground="#80D6A9" />
-                                        <TextBlock Text="{Binding EntrantCount, StringFormat=Entrants: {0}}" Foreground="#AFC2D5" />
-                                        <TextBlock Text="{Binding LastFetchedAt, StringFormat=Fetched: {0:HH:mm:ss}}" Foreground="#7890A6" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-            </Border>
-
-            <Border Grid.Column="1" Background="#162232" CornerRadius="14" Padding="18" Margin="0,0,14,0">
-                <Grid>
+        <TabControl Grid.Row="1" Background="#10151C" BorderBrush="#2B3E52">
+            <TabItem Header="Operator">
+                <Grid Margin="0,14,0,0">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="220" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="320" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource PanelBorder}" Margin="0,0,12,12">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="Recent Races" FontSize="20" FontWeight="Bold" Margin="0,0,0,12" />
+                            <ListBox ItemsSource="{Binding Races}" SelectedItem="{Binding SelectedRace, Mode=TwoWay}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="10" Margin="0,0,0,8" Background="#1B2B3C" CornerRadius="6">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding RaceId, StringFormat=Race #{0}}" FontWeight="Bold" FontSize="15" />
+                                                <TextBlock Text="{Binding Phase}" Foreground="#80D6A9" />
+                                                <TextBlock Text="{Binding EntrantCount, StringFormat=Entrants: {0}}" Foreground="#AFC2D5" />
+                                                <TextBlock Text="{Binding EntryFee, StringFormat=Entry: {0:0.####} ETH, TargetNullValue=Entry: ?}" Foreground="#AFC2D5" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource PanelBorder}" Margin="0,0,12,12">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Race Intelligence" FontSize="20" FontWeight="Bold" />
+                                <TextBlock Text="{Binding SelectedRaceDetail.RaceId, StringFormat=Race #{0}}" FontSize="28" FontWeight="Bold" Margin="0,12,0,0" />
+                                <TextBlock Text="{Binding SelectedRaceDetail.Phase, StringFormat=Phase: {0}}" Foreground="#80D6A9" FontSize="18" />
+
+                                <UniformGrid Columns="4" Margin="0,18,0,12">
+                                    <Border Background="#0F1822" CornerRadius="6" Padding="12" Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Text="Entrants" Foreground="#8EA8C2" />
+                                            <TextBlock Text="{Binding SelectedRaceDetail.EntrantCount, TargetNullValue=?}" FontSize="22" FontWeight="Bold" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#0F1822" CornerRadius="6" Padding="12" Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Text="Field" Foreground="#8EA8C2" />
+                                            <TextBlock Text="{Binding SelectedRaceDetail.MaxEntrants, TargetNullValue=?}" FontSize="22" FontWeight="Bold" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#0F1822" CornerRadius="6" Padding="12" Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Text="Pool" Foreground="#8EA8C2" />
+                                            <TextBlock Text="{Binding SelectedRaceDetail.Pool, StringFormat={}{0:0.####} ETH, TargetNullValue=?}" FontSize="22" FontWeight="Bold" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#0F1822" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="Track" Foreground="#8EA8C2" />
+                                            <TextBlock Text="{Binding SelectedRaceDetail.TrackLength, StringFormat={}{0}m, TargetNullValue=?}" FontSize="22" FontWeight="Bold" />
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+
+                                <UniformGrid Columns="3" Margin="0,0,0,12">
+                                    <TextBlock Text="{Binding SelectedRaceDetail.Weather, StringFormat=Weather: {0}, TargetNullValue=Weather: ?}" Foreground="#BDD2E5" />
+                                    <TextBlock Text="{Binding SelectedRaceDetail.Faction, StringFormat=Faction: {0}, TargetNullValue=Faction: ?}" Foreground="#BDD2E5" />
+                                    <TextBlock Text="{Binding SelectedRaceDetail.ItemsMode, StringFormat=Items: {0}, TargetNullValue=Items: ?}" Foreground="#BDD2E5" />
+                                </UniformGrid>
+
+                                <TextBlock Text="Lifecycle" FontWeight="Bold" Margin="0,8,0,4" />
+                                <TextBlock Text="{Binding PhaseDescription}" Foreground="#BDD2E5" />
+
+                                <TextBlock Text="Projected Payouts" FontWeight="Bold" Margin="0,16,0,4" />
+                                <ItemsControl ItemsSource="{Binding SelectedRaceDetail.ProjectedPayouts}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#0F1822" CornerRadius="6" Padding="8" Margin="0,0,8,8">
+                                                <TextBlock Text="{Binding StringFormat={}{0:0.####} ETH}" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource PanelBorder}" Margin="0,0,0,12">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Overlay Controls" FontSize="20" FontWeight="Bold" Margin="0,0,0,12" />
+                                <TextBlock Text="Preset" Foreground="#8EA8C2" />
+                                <ComboBox ItemsSource="{Binding OverlayPresets}" SelectedItem="{Binding SelectedOverlayPreset}" />
+                                <TextBlock Text="Position" Foreground="#8EA8C2" />
+                                <ComboBox ItemsSource="{Binding OverlayPositions}" SelectedItem="{Binding SelectedOverlayPosition}" />
+
+                                <Button Command="{Binding ShowRaceCardCommand}" Content="Show Race Card" />
+                                <Button Command="{Binding ShowResultCardCommand}" Content="Show Result Card" />
+                                <Button Command="{Binding ShowTickerCommand}" Content="Show Ticker" />
+                                <Button Command="{Binding HideOverlayCommand}" Content="Hide Overlay" />
+                                <Button Command="{Binding CopyDiscordSummaryCommand}" Content="Copy Discord Summary" />
+
+                                <TextBlock Text="Broadcast Rundown" FontSize="18" FontWeight="Bold" Margin="0,16,0,8" />
+                                <TextBox Text="{Binding NewRundownText, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Command="{Binding AddRundownLineCommand}" Content="Pin Ticker Line" />
+                                <Button Command="{Binding AddSelectedRaceToRundownCommand}" Content="Pin Selected Race" />
+                                <Button Command="{Binding ClearRundownCommand}" Content="Clear Rundown" />
+                                <ListBox ItemsSource="{Binding RundownItems}" MinHeight="110" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource PanelBorder}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="Raw Source JSON" FontSize="18" FontWeight="Bold" Margin="0,0,0,8" />
+                            <TextBox Text="{Binding RawJson}" FontFamily="Consolas" FontSize="12" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Explore">
+                <Grid Margin="0,14,0,0">
+                    <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Text="Selected Race" FontSize="20" FontWeight="Bold" />
-                        <TextBlock Text="{Binding SelectedRaceDetail.RaceId, StringFormat=Race #{0}}" FontSize="26" FontWeight="Bold" Margin="0,12,0,0" />
-                        <TextBlock Text="{Binding SelectedRaceDetail.Phase, StringFormat=Phase: {0}}" Foreground="#80D6A9" FontSize="18" />
-                    </StackPanel>
-
-                    <UniformGrid Grid.Row="1" Columns="3" Margin="0,18,0,18">
-                        <Border Background="#0F1822" CornerRadius="12" Padding="12" Margin="0,0,10,0">
-                            <StackPanel>
-                                <TextBlock Text="Entrants" Foreground="#8EA8C2" />
-                                <TextBlock Text="{Binding SelectedRaceDetail.EntrantCount, TargetNullValue=?}" FontSize="26" FontWeight="Bold" />
-                            </StackPanel>
+                    <TextBlock Grid.Row="0" Text="{Binding ExploreStatusText}" Foreground="#BDD2E5" Margin="0,0,0,12" />
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="300" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource PanelBorder}" Margin="0,0,12,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Scheduled Races" FontSize="20" FontWeight="Bold" Margin="0,0,0,12" />
+                                <ListBox ItemsSource="{Binding ScheduledRaces}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,10">
+                                                <TextBlock Text="{Binding RaceId, StringFormat=Race #{0}}" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Phase}" Foreground="#80D6A9" />
+                                                <TextBlock Text="{Binding TrackLength, StringFormat=Track: {0}m, TargetNullValue=Track: ?}" Foreground="#AFC2D5" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
                         </Border>
-                        <Border Background="#0F1822" CornerRadius="12" Padding="12" Margin="0,0,10,0">
-                            <StackPanel>
-                                <TextBlock Text="Max Field" Foreground="#8EA8C2" />
-                                <TextBlock Text="{Binding SelectedRaceDetail.MaxEntrants, TargetNullValue=?}" FontSize="26" FontWeight="Bold" />
-                            </StackPanel>
+                        <Border Grid.Column="1" Style="{StaticResource PanelBorder}" Margin="0,0,12,0">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Global Stats" FontSize="20" FontWeight="Bold" Margin="0,0,0,12" />
+                                <ListBox ItemsSource="{Binding GlobalStats}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,0,0,8">
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Label}" Foreground="#AFC2D5" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
                         </Border>
-                        <Border Background="#0F1822" CornerRadius="12" Padding="12">
-                            <StackPanel>
-                                <TextBlock Text="Pool" Foreground="#8EA8C2" />
-                                <TextBlock Text="{Binding SelectedRaceDetail.Pool, StringFormat={}{0:0.####} ETH, TargetNullValue=Unknown}" FontSize="26" FontWeight="Bold" />
-                            </StackPanel>
+                        <Border Grid.Column="2" Style="{StaticResource PanelBorder}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="ELO Leaderboard" FontSize="20" FontWeight="Bold" Margin="0,0,0,12" />
+                                <ListBox ItemsSource="{Binding Leaderboard}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,10">
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Elo, StringFormat=ELO: {0:0.##}, TargetNullValue=ELO: ?}" Foreground="#80D6A9" />
+                                                <TextBlock Text="{Binding Faction, StringFormat=Faction: {0}, TargetNullValue=Faction: ?}" Foreground="#AFC2D5" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
                         </Border>
-                    </UniformGrid>
-
-                    <Border Grid.Row="2" Background="#0F1822" CornerRadius="12" Padding="14">
-                        <StackPanel>
-                            <TextBlock Text="Lifecycle Explanation" FontWeight="Bold" Margin="0,0,0,8" />
-                            <TextBlock Text="{Binding PhaseDescription}" Foreground="#BDD2E5" />
-                        </StackPanel>
-                    </Border>
+                    </Grid>
                 </Grid>
-            </Border>
+            </TabItem>
+        </TabControl>
 
-            <Border Grid.Column="2" Background="#162232" CornerRadius="14" Padding="18">
-                <StackPanel>
-                    <TextBlock Text="Overlay Controls" FontSize="20" FontWeight="Bold" Margin="0,0,0,16" />
-                    <Button Command="{Binding ShowRaceCardCommand}" Content="Show Race Card" />
-                    <Button Command="{Binding ShowResultCardCommand}" Content="Show Result Card" />
-                    <Button Command="{Binding ShowTickerCommand}" Content="Show Ticker" />
-                    <Button Command="{Binding HideOverlayCommand}" Content="Hide Overlay" />
-                    <Button Command="{Binding CopyDiscordSummaryCommand}" Content="Copy Discord Summary" Margin="0,14,0,10" />
-
-                    <Border Background="#0F1822" CornerRadius="12" Padding="12" Margin="0,14,0,0">
-                        <StackPanel>
-                            <TextBlock Text="Local Diagnostics" FontWeight="Bold" Margin="0,0,0,6" />
-                            <TextBlock Text="{Binding HealthUrl, StringFormat=Health: {0}}" Foreground="#9DB6CF" />
-                            <TextBlock Text="{Binding IsOverlayServerRunning, StringFormat=Server running: {0}}" Foreground="#9DB6CF" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Border>
-        </Grid>
-
-        <Border Grid.Row="2" Background="#162232" CornerRadius="14" Padding="14" Margin="0,16,0,12">
+        <Border Grid.Row="2" Background="#0B1016" BorderBrush="#2B3E52" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,14,0,0">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="Raw Source JSON" FontSize="18" FontWeight="Bold" Margin="0,0,0,8" />
-                <TextBox Text="{Binding RawJson}" FontFamily="Consolas" FontSize="12" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
-            </DockPanel>
-        </Border>
-
-        <Border Grid.Row="3" Background="#0B1016" BorderBrush="#2B3E52" BorderThickness="1" CornerRadius="10" Padding="12">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding IsStale, StringFormat=Stale: {0}}" Foreground="#FFCA7A" Margin="18,0,0,0" />
-                <TextBlock DockPanel.Dock="Right" Text="{Binding HasError, StringFormat=Error: {0}}" Foreground="#FF8B8B" Margin="18,0,0,0" />
-                <TextBlock DockPanel.Dock="Right" Text="{Binding IsUnavailable, StringFormat=Unavailable: {0}}" Foreground="#FFCA7A" Margin="18,0,0,0" />
-                <TextBlock DockPanel.Dock="Right" Text="{Binding IsEmpty, StringFormat=Empty: {0}}" Foreground="#9DB6CF" Margin="18,0,0,0" />
+                <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding StatusChips}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#1B2B3C" CornerRadius="6" Padding="8,4" Margin="8,0,0,0">
+                                <TextBlock Text="{Binding}" Foreground="#BDD2E5" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
                 <TextBlock Text="{Binding StatusText}" Foreground="#D7E2EF" />
             </DockPanel>
         </Border>

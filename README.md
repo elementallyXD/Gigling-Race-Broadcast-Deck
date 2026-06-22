@@ -18,6 +18,17 @@ The app is intentionally read-only:
 - Static HTML/CSS/JS overlay for OBS Browser Source
 - `HttpClient` and `System.Text.Json`
 
+## Features
+
+- Recent race polling and selected-race live refresh.
+- Race intelligence fields such as entry fee, pool, field progress, track length, weather, faction, items, payouts, and source notes when available.
+- Operator rundown with pinned ticker lines and selected-race pins.
+- Overlay modes: `Hidden`, `RaceCard`, `ResultCard`, and `Ticker`.
+- Overlay presets: `Broadcast`, `Compact`, and `DataDesk`.
+- Explore tab for scheduled races, global stats, and ELO leaderboard data.
+- Raw JSON transparency panel for source verification.
+- Stale, fallback, unavailable endpoint, and malformed JSON handling.
+
 ## Run
 
 ```powershell
@@ -38,6 +49,18 @@ The local overlay server starts at:
 dotnet test
 ```
 
+## Publish Demo Build
+
+```powershell
+.\scripts\publish-win-x64.ps1
+```
+
+The release output is created under:
+
+```text
+src\GiglingBroadcastDeck.App\bin\Release\net10.0-windows\win-x64\publish
+```
+
 ## Configuration
 
 Runtime settings live in `src/GiglingBroadcastDeck.App/appsettings.json`.
@@ -53,8 +76,11 @@ Important defaults:
 - `Overlay:Host`: `localhost`
 - `Overlay:Port`: `5050`
 - `Overlay:PollMs`: `1000`
+- `Realtime:Enabled`: `false`
 
 If port `5050` is already in use, the app shows a friendly warning. Free the port or change `Overlay:Port`.
+
+Operator preferences are stored locally under the current Windows user profile. They include overlay preset, overlay position, and rundown items.
 
 ## MVP Workflow
 
@@ -62,9 +88,12 @@ If port `5050` is already in use, the app shows a friendly warning. Free the por
 2. Confirm the overlay server status in the header.
 3. Refresh recent races or read the API error shown in the status bar.
 4. Select a race to inspect normalized data and raw JSON.
-5. Use the overlay controls to show `Race Card`, `Result Card`, `Ticker`, or `Hidden`.
-6. Add `http://localhost:5050/overlay` as an OBS Browser Source.
-7. Use `Copy Discord Summary` for a concise race update.
+5. Choose an overlay preset and position.
+6. Pin selected races or custom ticker lines to the broadcast rundown.
+7. Use the overlay controls to show `Race Card`, `Result Card`, `Ticker`, or `Hidden`.
+8. Add `http://localhost:5050/overlay` as an OBS Browser Source.
+9. Use the Explore tab for scheduled races, stats, and leaderboard context.
+10. Use `Copy Discord Summary` for a concise race update.
 
 ## Documentation
 

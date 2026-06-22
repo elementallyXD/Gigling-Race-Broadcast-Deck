@@ -76,6 +76,7 @@ public partial class App : Application
         services.Configure<GigaverseOptions>(configuration.GetSection("Gigaverse"));
         services.Configure<PollingOptions>(configuration.GetSection("Polling"));
         services.Configure<OverlayOptions>(configuration.GetSection("Overlay"));
+        services.Configure<RealtimeOptions>(configuration.GetSection("Realtime"));
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<GigaverseOptions>>().Value);
 
         services.AddSingleton(provider =>
@@ -91,9 +92,12 @@ public partial class App : Application
         services.AddSingleton<IRaceMapper, RaceMapper>();
         services.AddSingleton<IGigaverseRacingClient, GigaverseRacingClient>();
         services.AddSingleton<IRacePollingService, RacePollingService>();
+        services.AddSingleton<IExploreDataService, ExploreDataService>();
         services.AddSingleton<IOverlayStateService, OverlayStateService>();
         services.AddSingleton<IClipboardSummaryService, ClipboardSummaryService>();
+        services.AddSingleton<IRealtimeRaceFeed, DisabledRealtimeRaceFeed>();
         services.AddSingleton<ILocalOverlayServer, LocalOverlayServer>();
+        services.AddSingleton<IOperatorPreferencesService, OperatorPreferencesService>();
 
         services.AddSingleton<MainWindowViewModel>();
         services.AddSingleton<MainWindow>();
