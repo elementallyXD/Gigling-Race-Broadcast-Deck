@@ -25,7 +25,9 @@ Use this guide to connect Gigling Broadcast Deck to OBS as a Browser Source.
 2. Confirm the header says the overlay server is running.
 3. Select a race from the recent race list.
 4. Use `Show Race Card`, `Show Result Card`, `Show Ticker`, or `Hide Overlay`.
-5. Verify the OBS Browser Source updates without reloading.
+5. Pin custom ticker lines or selected races in the rundown when you want operator-controlled ticker copy.
+6. Click `Clear Rundown` when pinned ticker lines should disappear from the overlay.
+7. Verify the OBS Browser Source updates without reloading.
 
 ## Health Check
 
@@ -60,6 +62,14 @@ Check:
 - A race is selected in the desktop app.
 - The operator selected `Show Race Card`, `Show Result Card`, or `Show Ticker`.
 - `http://localhost:5050/api/overlay-state` returns current state JSON.
+
+### Old Ticker Copy Still Appears
+
+Check whether the text is pinned rundown copy or generated race copy:
+
+- `rundownItems` and `tickerItems` should be empty in `/api/overlay-state` immediately after `Clear Rundown`.
+- If a race is selected and ticker mode is shown, generated race ticker text can still appear when no pinned rundown items exist.
+- Pin a new rundown line to override generated race ticker text.
 
 ### Race Data Does Not Load
 

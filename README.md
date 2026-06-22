@@ -22,7 +22,7 @@ The app is intentionally read-only:
 
 - Recent race polling and selected-race live refresh.
 - Race intelligence fields such as entry fee, pool, field progress, track length, weather, faction, items, payouts, and source notes when available.
-- Operator rundown with pinned ticker lines and selected-race pins.
+- Operator rundown with pinned ticker lines, selected-race pins, and one-click clearing.
 - Overlay modes: `Hidden`, `RaceCard`, `ResultCard`, and `Ticker`.
 - Overlay presets: `Broadcast`, `Compact`, and `DataDesk`.
 - Explore tab for scheduled races, global stats, and ELO leaderboard data.
@@ -82,6 +82,8 @@ If port `5050` is already in use, the app shows a friendly warning. Free the por
 
 Operator preferences are stored locally under the current Windows user profile. They include overlay preset, overlay position, and rundown items.
 
+`Clear Rundown` removes saved/pinned rundown lines and clears the pinned ticker fallback used by the overlay. If ticker mode is shown with no pinned rundown items, the overlay may still render generated race ticker text from the currently selected race.
+
 ## MVP Workflow
 
 1. Start the desktop app.
@@ -91,9 +93,10 @@ Operator preferences are stored locally under the current Windows user profile. 
 5. Choose an overlay preset and position.
 6. Pin selected races or custom ticker lines to the broadcast rundown.
 7. Use the overlay controls to show `Race Card`, `Result Card`, `Ticker`, or `Hidden`.
-8. Add `http://localhost:5050/overlay` as an OBS Browser Source.
-9. Use the Explore tab for scheduled races, stats, and leaderboard context.
-10. Use `Copy Discord Summary` for a concise race update.
+8. Click `Clear Rundown` when pinned ticker lines should be removed from the overlay.
+9. Add `http://localhost:5050/overlay` as an OBS Browser Source.
+10. Use the Explore tab for scheduled races, stats, and leaderboard context.
+11. Use `Copy Discord Summary` for a concise race update.
 
 ## Documentation
 
@@ -112,3 +115,4 @@ Operator preferences are stored locally under the current Windows user profile. 
 - Race list shows data or a clear API error.
 - Selecting a race updates selected details and raw JSON.
 - Overlay buttons update the browser overlay without reload.
+- `Clear Rundown` removes pinned rundown items from `/api/overlay-state` and from ticker rendering.

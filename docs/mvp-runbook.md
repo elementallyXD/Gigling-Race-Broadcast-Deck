@@ -115,6 +115,7 @@ Expected result:
 - Pinned items appear in the rundown list.
 - The ticker overlay prefers rundown items over generated race ticker text.
 - Clearing the rundown removes pinned overlay ticker items.
+- If ticker mode is shown after clearing and a race is still selected, generated race ticker text may still appear; this is separate from pinned rundown copy.
 
 ## Discord Summary Approval Gate
 
