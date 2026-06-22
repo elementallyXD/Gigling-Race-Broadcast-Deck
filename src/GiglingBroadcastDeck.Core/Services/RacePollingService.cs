@@ -25,7 +25,16 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
                 return MarkFailure(result.ErrorMessage ?? "Unable to fetch recent races.", result.FetchedAt);
             }
 
-            var races = mapper.MapRecentRaces(result.Value, result.FetchedAt);
+            IReadOnlyList<RaceSummary> races;
+            try
+            {
+                races = mapper.MapRecentRaces(result.Value, result.FetchedAt);
+            }
+            catch (Exception ex)
+            {
+                return MarkFailure($"Unable to parse recent races response: {ex.Message}", result.FetchedAt);
+            }
+
             Snapshot = Snapshot with
             {
                 Races = races,
@@ -67,10 +76,22 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
             var result = await client.GetRaceDetailRawAsync(_selectedRace.RaceId, cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess || result.Value is null)
             {
-                return MarkFailure(result.ErrorMessage ?? "Unable to fetch selected race.", result.FetchedAt);
+                return await TryLoadRaceStateFallbackAsync(
+                    result.ErrorMessage ?? "Unable to fetch selected race.",
+                    result.FetchedAt,
+                    cancellationToken).ConfigureAwait(false);
             }
 
-            var detail = mapper.MapRaceDetail(result.Value, _selectedRace.RaceId, result.FetchedAt);
+            RaceDetail detail;
+            try
+            {
+                detail = mapper.MapRaceDetail(result.Value, _selectedRace.RaceId, result.FetchedAt);
+            }
+            catch (Exception ex)
+            {
+                return MarkFailure($"Unable to parse selected race response: {ex.Message}", result.FetchedAt);
+            }
+
             Snapshot = Snapshot with
             {
                 SelectedRaceDetail = detail,
@@ -87,6 +108,44 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
         {
             _gate.Release();
         }
+    }
+
+    private async Task<RaceDataSnapshot> TryLoadRaceStateFallbackAsync(
+        string detailErrorMessage,
+        DateTimeOffset attemptedAt,
+        CancellationToken cancellationToken)
+    {
+        if (_selectedRace is null)
+        {
+            return MarkFailure(detailErrorMessage, attemptedAt);
+        }
+
+        var fallback = await client.GetRaceStateRawAsync(_selectedRace.RaceId, cancellationToken).ConfigureAwait(false);
+        if (!fallback.IsSuccess || fallback.Value is null)
+        {
+            return MarkFailure($"{detailErrorMessage} Fallback race-state also failed: {fallback.ErrorMessage}", fallback.FetchedAt);
+        }
+
+        RaceDetail detail;
+        try
+        {
+            detail = mapper.MapRaceDetail(fallback.Value, _selectedRace.RaceId, fallback.FetchedAt);
+        }
+        catch (Exception ex)
+        {
+            return MarkFailure($"Unable to parse race-state fallback response: {ex.Message}", fallback.FetchedAt);
+        }
+
+        Snapshot = Snapshot with
+        {
+            SelectedRaceDetail = detail,
+            Status = AppStatus.Unavailable,
+            Message = $"Race detail endpoint unavailable; showing race-state fallback. {detailErrorMessage}",
+            IsStale = false,
+            LastAttemptedFetchAt = fallback.FetchedAt
+        };
+
+        return Snapshot;
     }
 
     private RaceDataSnapshot MarkFailure(string message, DateTimeOffset attemptedAt)

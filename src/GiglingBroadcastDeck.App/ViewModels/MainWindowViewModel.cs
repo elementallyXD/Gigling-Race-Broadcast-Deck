@@ -35,6 +35,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isStale;
     private bool _hasError;
     private bool _isEmpty;
+    private bool _isUnavailable;
     private bool _isOverlayServerRunning;
     private bool _isRefreshing;
     private bool _isRefreshingSelected;
@@ -154,6 +155,12 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _isEmpty, value);
     }
 
+    public bool IsUnavailable
+    {
+        get => _isUnavailable;
+        private set => SetProperty(ref _isUnavailable, value);
+    }
+
     public bool IsOverlayServerRunning
     {
         get => _isOverlayServerRunning;
@@ -174,6 +181,13 @@ public sealed class MainWindowViewModel : ObservableObject
             IsOverlayServerRunning = false;
             OverlayServerStatus = ex.Message;
             MessageBox.Show(ex.Message, "Overlay server unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Local overlay server failed unexpectedly.");
+            IsOverlayServerRunning = false;
+            OverlayServerStatus = $"Overlay server failed to start: {ex.Message}";
+            MessageBox.Show(OverlayServerStatus, "Overlay server unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         await RefreshRacesAsync();
@@ -201,6 +215,12 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             ApplySnapshot(await _pollingService.RefreshRecentRacesAsync(CancellationToken.None));
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while refreshing recent races.");
+            HasError = true;
+            StatusText = $"Unexpected refresh error: {ex.Message}";
+        }
         finally
         {
             _isRefreshing = false;
@@ -217,6 +237,12 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             ApplySnapshot(await _pollingService.SelectRaceAsync(race, CancellationToken.None));
             PushSelectedRaceToOverlay();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while selecting race {RaceId}.", race.RaceId);
+            HasError = true;
+            StatusText = $"Unexpected race selection error: {ex.Message}";
         }
         finally
         {
@@ -239,6 +265,12 @@ public sealed class MainWindowViewModel : ObservableObject
             ApplySnapshot(await _pollingService.RefreshSelectedRaceAsync(CancellationToken.None));
             PushSelectedRaceToOverlay();
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while refreshing selected race.");
+            HasError = true;
+            StatusText = $"Unexpected selected race refresh error: {ex.Message}";
+        }
         finally
         {
             _isRefreshingSelected = false;
@@ -247,11 +279,15 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void ApplySnapshot(RaceDataSnapshot snapshot)
     {
+        var selectedRaceId = SelectedRace?.RaceId ?? snapshot.SelectedRaceDetail?.RaceId;
+
         Races.Clear();
         foreach (var race in snapshot.Races)
         {
             Races.Add(race);
         }
+
+        RestoreSelectedRace(selectedRaceId);
 
         SelectedRaceDetail = snapshot.SelectedRaceDetail;
         RawJson = snapshot.SelectedRaceDetail?.RawJson ?? SelectedRace?.RawJson ?? "";
@@ -259,9 +295,24 @@ public sealed class MainWindowViewModel : ObservableObject
         IsStale = snapshot.IsStale;
         HasError = snapshot.Status == AppStatus.Error;
         IsEmpty = snapshot.Status == AppStatus.Empty;
+        IsUnavailable = snapshot.Status == AppStatus.Unavailable;
         PhaseDescription = RacePhaseDescriptionService.Describe(snapshot.SelectedRaceDetail?.Phase ?? SelectedRace?.Phase);
 
         RefreshCommandStates();
+    }
+
+    private void RestoreSelectedRace(string? selectedRaceId)
+    {
+        if (string.IsNullOrWhiteSpace(selectedRaceId))
+        {
+            return;
+        }
+
+        var refreshedSelection = Races.FirstOrDefault(race => string.Equals(race.RaceId, selectedRaceId, StringComparison.OrdinalIgnoreCase));
+        if (refreshedSelection is not null && !ReferenceEquals(refreshedSelection, SelectedRace))
+        {
+            SetProperty(ref _selectedRace, refreshedSelection, nameof(SelectedRace));
+        }
     }
 
     private void SetOverlayMode(OverlayMode mode)
@@ -288,9 +339,18 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void CopyDiscordSummary()
     {
-        var summary = _clipboardSummaryService.CreateSummary(SelectedRace, SelectedRaceDetail);
-        Clipboard.SetText(summary);
-        StatusText = "Discord summary copied to clipboard.";
+        try
+        {
+            var summary = _clipboardSummaryService.CreateSummary(SelectedRace, SelectedRaceDetail);
+            Clipboard.SetText(summary);
+            StatusText = "Discord summary copied to clipboard.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unable to copy Discord summary.");
+            HasError = true;
+            StatusText = $"Unable to copy Discord summary: {ex.Message}";
+        }
     }
 
     private bool CanShowSelectedRaceOverlay() => SelectedRace is not null || SelectedRaceDetail is not null;

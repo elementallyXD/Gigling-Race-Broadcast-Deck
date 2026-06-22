@@ -1,5 +1,8 @@
 using System.IO;
 using System.Net.Sockets;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using GiglingBroadcastDeck.Core.Models;
 using GiglingBroadcastDeck.Core.Options;
 using GiglingBroadcastDeck.Core.Services;
 using Microsoft.AspNetCore.Builder;
@@ -18,6 +21,7 @@ public sealed class LocalOverlayServer(
     ILogger<LocalOverlayServer> logger) : ILocalOverlayServer
 {
     private readonly OverlayOptions _options = options.Value;
+    private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
     private WebApplication? _app;
 
     public bool IsRunning => _app is not null;
@@ -91,7 +95,7 @@ public sealed class LocalOverlayServer(
 
         app.MapGet("/", () => Results.Redirect("/overlay"));
         app.MapGet("/overlay", () => Results.File(Path.Combine(wwwroot, "overlay.html"), "text/html"));
-        app.MapGet("/api/overlay-state", () => Results.Json(overlayState.GetSnapshot()));
+        app.MapGet("/api/overlay-state", () => Results.Json(overlayState.GetSnapshot(), JsonOptions));
         app.MapGet("/api/health", () => Results.Json(new
         {
             app = "Gigling Broadcast Deck",
@@ -99,7 +103,14 @@ public sealed class LocalOverlayServer(
             serverTime = DateTimeOffset.UtcNow,
             overlayMode = overlayState.GetSnapshot().Mode.ToString(),
             overlayUrl = OverlayUrl
-        }));
+        }, JsonOptions));
+    }
+
+    private static JsonSerializerOptions CreateJsonOptions()
+    {
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        jsonOptions.Converters.Add(new JsonStringEnumConverter<OverlayMode>());
+        return jsonOptions;
     }
 
     private static bool IsPortConflict(Exception ex)

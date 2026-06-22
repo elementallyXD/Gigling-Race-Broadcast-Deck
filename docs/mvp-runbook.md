@@ -74,6 +74,7 @@ Expected result:
 
 - Race id, phase, entrants, field size, pool, lifecycle explanation, and raw JSON update.
 - Unknown/missing API fields show safe fallback text instead of crashing.
+- If the race-detail endpoint is unavailable but race-state works, the status bar shows `Unavailable: True` and displays race-state fallback data.
 
 ## Overlay Control Approval Gate
 
@@ -103,5 +104,6 @@ Expected result:
 
 - Port conflict shows a friendly warning.
 - Network failure shows error or stale-data status.
+- Malformed API JSON shows error or stale-data status instead of crashing.
 - No wallet, signing, private key, auth-token, gameplay POST, auto-play, or auto-join code exists.
 - External JSON is parsed through tolerant mapping and raw JSON is preserved for transparency.

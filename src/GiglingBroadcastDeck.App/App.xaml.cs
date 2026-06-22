@@ -19,10 +19,31 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        DispatcherUnhandledException += (_, args) =>
+        {
+            MessageBox.Show(
+                $"Unexpected app error: {args.Exception.Message}",
+                "Unexpected error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            args.Handled = true;
+        };
 
-        _services = ConfigureServices();
-        var window = _services.GetRequiredService<MainWindow>();
-        window.Show();
+        try
+        {
+            _services = ConfigureServices();
+            var window = _services.GetRequiredService<MainWindow>();
+            window.Show();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Gigling Broadcast Deck could not start: {ex.Message}",
+                "Startup failed",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)
@@ -62,8 +83,8 @@ public partial class App : Application
             var options = provider.GetRequiredService<IOptions<GigaverseOptions>>().Value;
             return new HttpClient
             {
-                BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute),
-                Timeout = TimeSpan.FromSeconds(10)
+                BaseAddress = new Uri(EnsureTrailingSlash(options.BaseUrl), UriKind.Absolute),
+                Timeout = TimeSpan.FromSeconds(Math.Max(3, options.TimeoutSeconds))
             };
         });
 
@@ -79,4 +100,7 @@ public partial class App : Application
 
         return services.BuildServiceProvider(validateScopes: true);
     }
+
+    private static string EnsureTrailingSlash(string value) =>
+        value.EndsWith("/", StringComparison.Ordinal) ? value : value + "/";
 }

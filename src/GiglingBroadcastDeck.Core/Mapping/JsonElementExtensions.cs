@@ -89,9 +89,21 @@ public static class JsonElementExtensions
             return root.EnumerateArray().ToArray();
         }
 
-        foreach (var propertyName in new[] { "races", "data", "items", "results", "raceList" })
+        foreach (var propertyName in new[]
         {
-            if (root.TryGetPropertyIgnoreCase(propertyName, out var value) && value.ValueKind == JsonValueKind.Array)
+            "races",
+            "data",
+            "items",
+            "results",
+            "raceList",
+            "data.races",
+            "data.items",
+            "data.results",
+            "payload.races",
+            "payload.items"
+        })
+        {
+            if (TryFindByPath(root, propertyName, out var value) && value.ValueKind == JsonValueKind.Array)
             {
                 return value.EnumerateArray().ToArray();
             }

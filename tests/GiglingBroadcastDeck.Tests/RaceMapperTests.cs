@@ -63,4 +63,23 @@ public sealed class RaceMapperTests
         Assert.Equal(["gigling-1", "gigling-2"], detail.ResultOrder);
         Assert.Equal(rawJson, detail.RawJson);
     }
+
+    [Fact]
+    public void MapRecentRaces_ReadsNestedDataRacesWrapper()
+    {
+        const string rawJson = """
+        {
+          "data": {
+            "races": [
+              { "id": "nested-1", "phase": "OPEN" }
+            ]
+          }
+        }
+        """;
+
+        var races = _mapper.MapRecentRaces(rawJson, DateTimeOffset.UnixEpoch);
+
+        Assert.Single(races);
+        Assert.Equal("nested-1", races[0].RaceId);
+    }
 }

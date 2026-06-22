@@ -107,7 +107,7 @@ function formatPool(value) {
 
 function formatTicker(state) {
   const items = state.tickerItems ?? state.TickerItems ?? [];
-  return Array.isArray(items) && items.length > 0 ? items.join("  •  ") : (state.headline ?? state.Headline ?? "Gigling Racing");
+  return Array.isArray(items) && items.length > 0 ? items.join("  |  ") : (state.headline ?? state.Headline ?? "Gigling Racing");
 }
 
 function decimals(value) {
