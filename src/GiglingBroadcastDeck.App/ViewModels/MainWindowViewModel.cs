@@ -39,6 +39,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isOverlayServerRunning;
     private bool _isRefreshing;
     private bool _isRefreshingSelected;
+    private bool _isApplyingSnapshot;
 
     public MainWindowViewModel(
         IRacePollingService pollingService,
@@ -94,6 +95,11 @@ public sealed class MainWindowViewModel : ObservableObject
         get => _selectedRace;
         set
         {
+            if (_isApplyingSnapshot && value is null)
+            {
+                return;
+            }
+
             if (SetProperty(ref _selectedRace, value) && value is not null)
             {
                 _ = SelectRaceAsync(value);
@@ -281,24 +287,65 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         var selectedRaceId = SelectedRace?.RaceId ?? snapshot.SelectedRaceDetail?.RaceId;
 
-        Races.Clear();
-        foreach (var race in snapshot.Races)
+        _isApplyingSnapshot = true;
+        try
         {
-            Races.Add(race);
+            UpdateRaceCollection(snapshot.Races, selectedRaceId);
+            RestoreSelectedRace(selectedRaceId);
+
+            SelectedRaceDetail = snapshot.SelectedRaceDetail;
+            RawJson = snapshot.SelectedRaceDetail?.RawJson ?? SelectedRace?.RawJson ?? "";
+            StatusText = FormatStatus(snapshot);
+            IsStale = snapshot.IsStale;
+            HasError = snapshot.Status == AppStatus.Error;
+            IsEmpty = snapshot.Status == AppStatus.Empty;
+            IsUnavailable = snapshot.Status == AppStatus.Unavailable;
+            PhaseDescription = RacePhaseDescriptionService.Describe(snapshot.SelectedRaceDetail?.Phase ?? SelectedRace?.Phase);
+        }
+        finally
+        {
+            _isApplyingSnapshot = false;
         }
 
-        RestoreSelectedRace(selectedRaceId);
-
-        SelectedRaceDetail = snapshot.SelectedRaceDetail;
-        RawJson = snapshot.SelectedRaceDetail?.RawJson ?? SelectedRace?.RawJson ?? "";
-        StatusText = FormatStatus(snapshot);
-        IsStale = snapshot.IsStale;
-        HasError = snapshot.Status == AppStatus.Error;
-        IsEmpty = snapshot.Status == AppStatus.Empty;
-        IsUnavailable = snapshot.Status == AppStatus.Unavailable;
-        PhaseDescription = RacePhaseDescriptionService.Describe(snapshot.SelectedRaceDetail?.Phase ?? SelectedRace?.Phase);
-
         RefreshCommandStates();
+    }
+
+    private void UpdateRaceCollection(IReadOnlyList<RaceSummary> races, string? selectedRaceId)
+    {
+        var desiredIds = races
+            .Select(race => race.RaceId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        for (var index = Races.Count - 1; index >= 0; index--)
+        {
+            if (!desiredIds.Contains(Races[index].RaceId))
+            {
+                Races.RemoveAt(index);
+            }
+        }
+
+        for (var desiredIndex = 0; desiredIndex < races.Count; desiredIndex++)
+        {
+            var desiredRace = races[desiredIndex];
+            var currentIndex = FindRaceIndex(desiredRace.RaceId);
+
+            if (currentIndex < 0)
+            {
+                Races.Insert(desiredIndex, desiredRace);
+                continue;
+            }
+
+            if (currentIndex != desiredIndex)
+            {
+                Races.Move(currentIndex, desiredIndex);
+            }
+
+            if (!IsSelectedRaceId(desiredRace.RaceId, selectedRaceId) && !Equals(Races[desiredIndex], desiredRace))
+            {
+                Races[desiredIndex] = desiredRace;
+            }
+        }
     }
 
     private void RestoreSelectedRace(string? selectedRaceId)
@@ -314,6 +361,24 @@ public sealed class MainWindowViewModel : ObservableObject
             SetProperty(ref _selectedRace, refreshedSelection, nameof(SelectedRace));
         }
     }
+
+    private int FindRaceIndex(string raceId)
+    {
+        for (var index = 0; index < Races.Count; index++)
+        {
+            if (string.Equals(Races[index].RaceId, raceId, StringComparison.OrdinalIgnoreCase))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool IsSelectedRaceId(string raceId, string? selectedRaceId) =>
+        !string.IsNullOrWhiteSpace(selectedRaceId) &&
+        string.Equals(raceId, selectedRaceId, StringComparison.OrdinalIgnoreCase);
+
 
     private void SetOverlayMode(OverlayMode mode)
     {

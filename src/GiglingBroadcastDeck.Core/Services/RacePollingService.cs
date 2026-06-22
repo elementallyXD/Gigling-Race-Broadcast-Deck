@@ -1,5 +1,6 @@
 using GiglingBroadcastDeck.Core.Mapping;
 using GiglingBroadcastDeck.Core.Models;
+using System.Text.Json;
 
 namespace GiglingBroadcastDeck.Core.Services;
 
@@ -30,7 +31,7 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
             {
                 races = mapper.MapRecentRaces(result.Value, result.FetchedAt);
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
                 return MarkFailure($"Unable to parse recent races response: {ex.Message}", result.FetchedAt);
             }
@@ -87,7 +88,7 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
             {
                 detail = mapper.MapRaceDetail(result.Value, _selectedRace.RaceId, result.FetchedAt);
             }
-            catch (Exception ex)
+            catch (JsonException ex)
             {
                 return MarkFailure($"Unable to parse selected race response: {ex.Message}", result.FetchedAt);
             }
@@ -131,7 +132,7 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
         {
             detail = mapper.MapRaceDetail(fallback.Value, _selectedRace.RaceId, fallback.FetchedAt);
         }
-        catch (Exception ex)
+        catch (JsonException ex)
         {
             return MarkFailure($"Unable to parse race-state fallback response: {ex.Message}", fallback.FetchedAt);
         }
