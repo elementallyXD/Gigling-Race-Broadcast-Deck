@@ -2,13 +2,37 @@ name: .NET Desktop CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dotnet-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: 10.0.x
+  SOLUTION_FILE: GiglingBroadcastDeck.slnx
+  TEST_PROJECT: tests/GiglingBroadcastDeck.Tests/GiglingBroadcastDeck.Tests.csproj
+  PUBLISH_DIR: src/GiglingBroadcastDeck.App/bin/Release/net10.0-windows/win-x64/publish
 
 jobs:
-  build:
+  validate:
+    name: Validate (${{ matrix.configuration }})
     runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - Debug
+          - Release
 
     steps:
       - name: Checkout
@@ -17,13 +41,56 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Show .NET info
+        run: dotnet --info
 
       - name: Restore
-        run: dotnet restore GiglingBroadcastDeck.sln
+        run: dotnet restore $env:SOLUTION_FILE
 
       - name: Build
-        run: dotnet build GiglingBroadcastDeck.sln --configuration Release --no-restore
+        run: dotnet build $env:SOLUTION_FILE --configuration $env:CONFIGURATION --no-restore
+        env:
+          CONFIGURATION: ${{ matrix.configuration }}
 
       - name: Test
-        run: dotnet test GiglingBroadcastDeck.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test $env:TEST_PROJECT --configuration $env:CONFIGURATION --no-build --logger "trx;LogFileName=test-results-${{ matrix.configuration }}.trx"
+        env:
+          CONFIGURATION: ${{ matrix.configuration }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.configuration }}
+          path: tests/**/TestResults/*.trx
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish:
+    name: Publish win-x64 demo build
+    runs-on: windows-latest
+    needs: validate
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish self-contained Windows build
+        shell: pwsh
+        run: ./scripts/publish-win-x64.ps1 -Configuration Release
+
+      - name: Upload published app
+        uses: actions/upload-artifact@v4
+        with:
+          name: gigling-broadcast-deck-win-x64
+          path: ${{ env.PUBLISH_DIR }}
+          if-no-files-found: error
+          retention-days: 14
