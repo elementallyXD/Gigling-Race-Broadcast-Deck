@@ -16,9 +16,11 @@ namespace GiglingBroadcastDeck.App.ViewModels;
 public sealed class MainWindowViewModel : ObservableObject
 {
     private readonly IRacePollingService _pollingService;
+    private readonly IExploreDataService _exploreDataService;
     private readonly IOverlayStateService _overlayStateService;
     private readonly IClipboardSummaryService _clipboardSummaryService;
     private readonly ILocalOverlayServer _overlayServer;
+    private readonly IOperatorPreferencesService _preferencesService;
     private readonly PollingOptions _pollingOptions;
     private readonly OverlayOptions _overlayOptions;
     private readonly ILogger<MainWindowViewModel> _logger;
@@ -40,30 +42,52 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isRefreshing;
     private bool _isRefreshingSelected;
     private bool _isApplyingSnapshot;
+    private bool _isRefreshingExplore;
+    private bool _isExploreLoading;
+    private string _newRundownText = "";
+    private string _exploreStatusText = "Explore data has not loaded yet.";
+    private OverlayPreset _selectedOverlayPreset = OverlayPreset.Broadcast;
+    private OverlayPosition _selectedOverlayPosition = OverlayPosition.LowerLeft;
 
     public MainWindowViewModel(
         IRacePollingService pollingService,
+        IExploreDataService exploreDataService,
         IOverlayStateService overlayStateService,
         IClipboardSummaryService clipboardSummaryService,
         ILocalOverlayServer overlayServer,
+        IOperatorPreferencesService preferencesService,
         IOptions<PollingOptions> pollingOptions,
         IOptions<OverlayOptions> overlayOptions,
         ILogger<MainWindowViewModel> logger)
     {
         _pollingService = pollingService;
+        _exploreDataService = exploreDataService;
         _overlayStateService = overlayStateService;
         _clipboardSummaryService = clipboardSummaryService;
         _overlayServer = overlayServer;
+        _preferencesService = preferencesService;
         _pollingOptions = pollingOptions.Value;
         _overlayOptions = overlayOptions.Value;
         _logger = logger;
 
         RefreshRacesCommand = new AsyncRelayCommand(RefreshRacesAsync);
+        RefreshExploreCommand = new AsyncRelayCommand(RefreshExploreAsync);
         ShowRaceCardCommand = new RelayCommand(() => SetOverlayMode(OverlayMode.RaceCard), CanShowSelectedRaceOverlay);
         ShowResultCardCommand = new RelayCommand(() => SetOverlayMode(OverlayMode.ResultCard), CanShowResultOverlay);
         ShowTickerCommand = new RelayCommand(() => SetOverlayMode(OverlayMode.Ticker), CanShowSelectedRaceOverlay);
         HideOverlayCommand = new RelayCommand(HideOverlay);
         CopyDiscordSummaryCommand = new RelayCommand(CopyDiscordSummary, CanShowSelectedRaceOverlay);
+        AddSelectedRaceToRundownCommand = new RelayCommand(AddSelectedRaceToRundown, CanShowSelectedRaceOverlay);
+        AddRundownLineCommand = new RelayCommand(AddRundownLine, () => !string.IsNullOrWhiteSpace(NewRundownText));
+        ClearRundownCommand = new RelayCommand(ClearRundown);
+
+        var preferences = _preferencesService.Load();
+        _selectedOverlayPreset = preferences.OverlayPreset;
+        _selectedOverlayPosition = preferences.OverlayPosition;
+        foreach (var item in preferences.RundownItems.Take(5))
+        {
+            RundownItems.Add(item);
+        }
 
         _recentRaceTimer = new DispatcherTimer
         {
@@ -79,13 +103,25 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     public ObservableCollection<RaceSummary> Races { get; } = [];
+    public ObservableCollection<RaceSummary> ScheduledRaces { get; } = [];
+    public ObservableCollection<StatLine> GlobalStats { get; } = [];
+    public ObservableCollection<LeaderboardEntry> Leaderboard { get; } = [];
+    public ObservableCollection<string> RundownItems { get; } = [];
+    public ObservableCollection<string> StatusChips { get; } = [];
+
+    public IReadOnlyList<OverlayPreset> OverlayPresets { get; } = Enum.GetValues<OverlayPreset>();
+    public IReadOnlyList<OverlayPosition> OverlayPositions { get; } = Enum.GetValues<OverlayPosition>();
 
     public IAsyncRelayCommand RefreshRacesCommand { get; }
+    public IAsyncRelayCommand RefreshExploreCommand { get; }
     public IRelayCommand ShowRaceCardCommand { get; }
     public IRelayCommand ShowResultCardCommand { get; }
     public IRelayCommand ShowTickerCommand { get; }
     public IRelayCommand HideOverlayCommand { get; }
     public IRelayCommand CopyDiscordSummaryCommand { get; }
+    public IRelayCommand AddSelectedRaceToRundownCommand { get; }
+    public IRelayCommand AddRundownLineCommand { get; }
+    public IRelayCommand ClearRundownCommand { get; }
 
     public string OverlayUrl => _overlayOptions.OverlayUrl;
     public string HealthUrl => _overlayServer.HealthUrl;
@@ -173,6 +209,54 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _isOverlayServerRunning, value);
     }
 
+    public bool IsExploreLoading
+    {
+        get => _isExploreLoading;
+        private set => SetProperty(ref _isExploreLoading, value);
+    }
+
+    public string ExploreStatusText
+    {
+        get => _exploreStatusText;
+        private set => SetProperty(ref _exploreStatusText, value);
+    }
+
+    public string NewRundownText
+    {
+        get => _newRundownText;
+        set
+        {
+            if (SetProperty(ref _newRundownText, value))
+            {
+                AddRundownLineCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public OverlayPreset SelectedOverlayPreset
+    {
+        get => _selectedOverlayPreset;
+        set
+        {
+            if (SetProperty(ref _selectedOverlayPreset, value))
+            {
+                ApplyOverlayPreferences();
+            }
+        }
+    }
+
+    public OverlayPosition SelectedOverlayPosition
+    {
+        get => _selectedOverlayPosition;
+        set
+        {
+            if (SetProperty(ref _selectedOverlayPosition, value))
+            {
+                ApplyOverlayPreferences();
+            }
+        }
+    }
+
     public async Task StartAsync()
     {
         try
@@ -180,6 +264,7 @@ public sealed class MainWindowViewModel : ObservableObject
             await _overlayServer.StartAsync(CancellationToken.None);
             IsOverlayServerRunning = true;
             OverlayServerStatus = $"Overlay server running at {OverlayUrl}";
+            ApplyOverlayPreferences();
         }
         catch (LocalOverlayServerException ex)
         {
@@ -197,6 +282,7 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         await RefreshRacesAsync();
+        await RefreshExploreAsync();
         _recentRaceTimer.Start();
         _selectedRaceTimer.Start();
     }
@@ -301,6 +387,7 @@ public sealed class MainWindowViewModel : ObservableObject
             IsEmpty = snapshot.Status == AppStatus.Empty;
             IsUnavailable = snapshot.Status == AppStatus.Unavailable;
             PhaseDescription = RacePhaseDescriptionService.Describe(snapshot.SelectedRaceDetail?.Phase ?? SelectedRace?.Phase);
+            UpdateStatusChips(snapshot);
         }
         finally
         {
@@ -379,6 +466,106 @@ public sealed class MainWindowViewModel : ObservableObject
         !string.IsNullOrWhiteSpace(selectedRaceId) &&
         string.Equals(raceId, selectedRaceId, StringComparison.OrdinalIgnoreCase);
 
+    private async Task RefreshExploreAsync()
+    {
+        if (_isRefreshingExplore)
+        {
+            return;
+        }
+
+        _isRefreshingExplore = true;
+        IsExploreLoading = true;
+
+        try
+        {
+            var snapshot = await _exploreDataService.RefreshAsync(CancellationToken.None);
+            ReplaceCollection(ScheduledRaces, snapshot.ScheduledRaces);
+            ReplaceCollection(GlobalStats, snapshot.GlobalStats);
+            ReplaceCollection(Leaderboard, snapshot.Leaderboard);
+            ExploreStatusText = FormatExploreStatus(snapshot);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while refreshing Explore data.");
+            ExploreStatusText = $"Explore refresh failed: {ex.Message}";
+        }
+        finally
+        {
+            _isRefreshingExplore = false;
+            IsExploreLoading = false;
+        }
+    }
+
+    private void AddSelectedRaceToRundown()
+    {
+        if (SelectedRace is null && SelectedRaceDetail is null)
+        {
+            return;
+        }
+
+        var raceId = SelectedRaceDetail?.RaceId ?? SelectedRace?.RaceId ?? "unknown";
+        var phase = SelectedRaceDetail?.Phase ?? SelectedRace?.Phase ?? "Unknown";
+        var entrants = FormatEntrants(SelectedRaceDetail?.EntrantCount ?? SelectedRace?.EntrantCount, SelectedRaceDetail?.MaxEntrants ?? SelectedRace?.MaxEntrants);
+        AddRundownItem($"Race #{raceId} - {phase} - {entrants}");
+    }
+
+    private void AddRundownLine()
+    {
+        AddRundownItem(NewRundownText.Trim());
+        NewRundownText = "";
+    }
+
+    private void ClearRundown()
+    {
+        RundownItems.Clear();
+        PushRundownToOverlay();
+    }
+
+    private void AddRundownItem(string item)
+    {
+        if (string.IsNullOrWhiteSpace(item))
+        {
+            return;
+        }
+
+        if (RundownItems.Count >= 5)
+        {
+            RundownItems.RemoveAt(0);
+        }
+
+        RundownItems.Add(item);
+        PushRundownToOverlay();
+    }
+
+    private void ApplyOverlayPreferences()
+    {
+        _overlayStateService.SetPreset(SelectedOverlayPreset, SelectedOverlayPosition);
+        PushRundownToOverlay();
+        SavePreferences();
+    }
+
+    private void PushRundownToOverlay()
+    {
+        _overlayStateService.SetRundown(RundownItems.ToArray());
+        SavePreferences();
+    }
+
+    private void SavePreferences()
+    {
+        try
+        {
+            _preferencesService.Save(new OperatorPreferences
+            {
+                OverlayPreset = SelectedOverlayPreset,
+                OverlayPosition = SelectedOverlayPosition,
+                RundownItems = RundownItems.ToArray()
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Unable to save operator preferences.");
+        }
+    }
 
     private void SetOverlayMode(OverlayMode mode)
     {
@@ -430,11 +617,53 @@ public sealed class MainWindowViewModel : ObservableObject
         ShowResultCardCommand.NotifyCanExecuteChanged();
         ShowTickerCommand.NotifyCanExecuteChanged();
         CopyDiscordSummaryCommand.NotifyCanExecuteChanged();
+        AddSelectedRaceToRundownCommand.NotifyCanExecuteChanged();
     }
 
     private static string FormatStatus(RaceDataSnapshot snapshot)
     {
         var attempted = snapshot.LastAttemptedFetchAt?.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture);
         return attempted is null ? snapshot.Message : $"{snapshot.Message} Last attempt: {attempted}.";
+    }
+
+    private void UpdateStatusChips(RaceDataSnapshot snapshot)
+    {
+        StatusChips.Clear();
+        StatusChips.Add(IsOverlayServerRunning ? "Live" : "Offline");
+        StatusChips.Add(IsLoading ? "Polling" : "Idle");
+
+        if (snapshot.IsStale)
+        {
+            StatusChips.Add("Stale");
+        }
+
+        if (snapshot.Status == AppStatus.Unavailable)
+        {
+            StatusChips.Add("Fallback");
+            StatusChips.Add("Endpoint unavailable");
+        }
+
+        if (snapshot.Status == AppStatus.Error)
+        {
+            StatusChips.Add("Endpoint unavailable");
+        }
+    }
+
+    private static string FormatExploreStatus(ExploreDataSnapshot snapshot)
+    {
+        var fetched = snapshot.LastFetchedAt?.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+        return fetched is null ? snapshot.Message : $"{snapshot.Message} Last fetch: {fetched}.";
+    }
+
+    private static string FormatEntrants(int? current, int? max) =>
+        current is null && max is null ? "Entrants unknown" : $"Entrants {current?.ToString(CultureInfo.InvariantCulture) ?? "?"}/{max?.ToString(CultureInfo.InvariantCulture) ?? "?"}";
+
+    private static void ReplaceCollection<T>(ObservableCollection<T> target, IReadOnlyList<T> source)
+    {
+        target.Clear();
+        foreach (var item in source)
+        {
+            target.Add(item);
+        }
     }
 }

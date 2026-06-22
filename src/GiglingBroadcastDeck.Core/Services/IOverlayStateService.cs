@@ -8,5 +8,9 @@ public interface IOverlayStateService
 
     OverlayState SetMode(OverlayMode mode, RaceSummary? selectedRace, RaceDetail? selectedRaceDetail);
 
+    OverlayState SetPreset(OverlayPreset preset, OverlayPosition position);
+
+    OverlayState SetRundown(IReadOnlyList<string> rundownItems);
+
     OverlayState Hide();
 }

@@ -125,5 +125,14 @@ public sealed class RacePollingServiceTests
 
         public Task<ApiFetchResult<string>> GetRaceStateRawAsync(string raceId, CancellationToken cancellationToken) =>
             Task.FromResult(_stateResult);
+
+        public Task<ApiFetchResult<string>> GetScheduledRacesRawAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(ApiFetchResult<string>.Failure("not used", DateTimeOffset.UnixEpoch));
+
+        public Task<ApiFetchResult<string>> GetGlobalStatsRawAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(ApiFetchResult<string>.Failure("not used", DateTimeOffset.UnixEpoch));
+
+        public Task<ApiFetchResult<string>> GetLeaderboardRawAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(ApiFetchResult<string>.Failure("not used", DateTimeOffset.UnixEpoch));
     }
 }

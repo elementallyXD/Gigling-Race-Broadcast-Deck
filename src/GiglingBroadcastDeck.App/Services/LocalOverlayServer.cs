@@ -110,6 +110,8 @@ public sealed class LocalOverlayServer(
     {
         var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         jsonOptions.Converters.Add(new JsonStringEnumConverter<OverlayMode>());
+        jsonOptions.Converters.Add(new JsonStringEnumConverter<OverlayPreset>());
+        jsonOptions.Converters.Add(new JsonStringEnumConverter<OverlayPosition>());
         return jsonOptions;
     }
 

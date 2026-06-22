@@ -14,6 +14,15 @@ public sealed class GigaverseRacingClient(HttpClient httpClient, GigaverseOption
     public Task<ApiFetchResult<string>> GetRaceStateRawAsync(string raceId, CancellationToken cancellationToken) =>
         GetRawAsync($"race-state?raceId={Uri.EscapeDataString(raceId)}", cancellationToken);
 
+    public Task<ApiFetchResult<string>> GetScheduledRacesRawAsync(CancellationToken cancellationToken) =>
+        GetRawAsync("scheduled", cancellationToken);
+
+    public Task<ApiFetchResult<string>> GetGlobalStatsRawAsync(CancellationToken cancellationToken) =>
+        GetRawAsync("stats", cancellationToken);
+
+    public Task<ApiFetchResult<string>> GetLeaderboardRawAsync(CancellationToken cancellationToken) =>
+        GetRawAsync("leaderboard/elo?limit=25&offset=0", cancellationToken);
+
     private async Task<ApiFetchResult<string>> GetRawAsync(string relativePath, CancellationToken cancellationToken)
     {
         var fetchedAt = DateTimeOffset.UtcNow;

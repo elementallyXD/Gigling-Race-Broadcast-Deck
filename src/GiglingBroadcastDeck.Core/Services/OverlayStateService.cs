@@ -27,6 +27,43 @@ public sealed class OverlayStateService : IOverlayStateService
                 SelectedRaceDetail = selectedRaceDetail,
                 Headline = headline,
                 TickerItems = CreateTickerItems(selectedRace, selectedRaceDetail),
+                SourceNote = CreateSourceNote(selectedRace, selectedRaceDetail),
+                LifecycleText = RacePhaseDescriptionService.Describe(selectedRaceDetail?.Phase ?? selectedRace?.Phase),
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            return _state;
+        }
+    }
+
+    public OverlayState SetPreset(OverlayPreset preset, OverlayPosition position)
+    {
+        lock (_gate)
+        {
+            _state = _state with
+            {
+                Preset = preset,
+                Position = position,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            return _state;
+        }
+    }
+
+    public OverlayState SetRundown(IReadOnlyList<string> rundownItems)
+    {
+        lock (_gate)
+        {
+            var pinnedItems = rundownItems
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Take(5)
+                .ToArray();
+
+            _state = _state with
+            {
+                RundownItems = pinnedItems,
+                TickerItems = pinnedItems,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
 
@@ -68,7 +105,18 @@ public sealed class OverlayStateService : IOverlayStateService
         var phase = selectedRaceDetail?.Phase ?? selectedRace?.Phase ?? "Unknown";
         var entrants = FormatEntrants(selectedRaceDetail?.EntrantCount ?? selectedRace?.EntrantCount, selectedRaceDetail?.MaxEntrants ?? selectedRace?.MaxEntrants);
 
-        return [$"Race #{raceId}", $"Phase: {phase}", $"Entrants: {entrants}"];
+        var pool = selectedRaceDetail?.Pool ?? selectedRace?.Pool;
+        return pool is null
+            ? [$"Race #{raceId}", $"Phase: {phase}", $"Entrants: {entrants}"]
+            : [$"Race #{raceId}", $"Phase: {phase}", $"Entrants: {entrants}", $"Pool: {pool:0.####} ETH"];
+    }
+
+    private static string CreateSourceNote(RaceSummary? selectedRace, RaceDetail? selectedRaceDetail)
+    {
+        var source = selectedRaceDetail?.Source ?? selectedRace?.Source;
+        return string.IsNullOrWhiteSpace(source)
+            ? "Source: public Gigling Racing API"
+            : $"Source: {source}";
     }
 
     private static string FormatEntrants(int? current, int? max) =>
