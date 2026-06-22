@@ -61,6 +61,20 @@ The release output is created under:
 src\GiglingBroadcastDeck.App\bin\Release\net10.0-windows\win-x64\publish
 ```
 
+## GitHub Actions
+
+The repository includes a Windows GitHub Actions workflow at `.github/workflows/dotnet-desktop.yml`.
+
+It runs on pushes and pull requests to `main`:
+
+- Restores `GiglingBroadcastDeck.slnx`.
+- Builds the solution in `Release`.
+- Runs the xUnit test project.
+- Publishes a self-contained `win-x64` demo build.
+- Uploads the published app and test results as workflow artifacts.
+
+The workflow intentionally does not sign or create an MSIX package yet. The app currently has no Windows Application Packaging Project, signing certificate, or store-upload flow, so CI produces a simple demo-ready publish folder instead.
+
 ## Configuration
 
 Runtime settings live in `src/GiglingBroadcastDeck.App/appsettings.json`.

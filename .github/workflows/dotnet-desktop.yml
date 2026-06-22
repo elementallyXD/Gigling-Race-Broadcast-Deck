@@ -1,0 +1,61 @@
+name: .NET Desktop CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: 10.0.x
+  SOLUTION_FILE: GiglingBroadcastDeck.slnx
+  TEST_PROJECT: tests/GiglingBroadcastDeck.Tests/GiglingBroadcastDeck.Tests.csproj
+  PUBLISH_DIR: src/GiglingBroadcastDeck.App/bin/Release/net10.0-windows/win-x64/publish
+
+jobs:
+  build-test-publish:
+    name: Build, test, and publish Windows app
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Show .NET info
+        run: dotnet --info
+
+      - name: Restore
+        run: dotnet restore $env:SOLUTION_FILE
+
+      - name: Build
+        run: dotnet build $env:SOLUTION_FILE --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test $env:TEST_PROJECT --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Publish self-contained Windows build
+        shell: pwsh
+        run: ./scripts/publish-win-x64.ps1 -Configuration Release
+
+      - name: Upload published app
+        uses: actions/upload-artifact@v4
+        with:
+          name: gigling-broadcast-deck-win-x64
+          path: ${{ env.PUBLISH_DIR }}
+          if-no-files-found: error
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: tests/**/TestResults/*.trx
+          if-no-files-found: warn
