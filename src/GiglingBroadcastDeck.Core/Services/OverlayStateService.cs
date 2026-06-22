@@ -55,10 +55,15 @@ public sealed class OverlayStateService : IOverlayStateService
     {
         lock (_gate)
         {
+            var pinnedItems = rundownItems
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Take(5)
+                .ToArray();
+
             _state = _state with
             {
-                RundownItems = rundownItems.Where(item => !string.IsNullOrWhiteSpace(item)).Take(5).ToArray(),
-                TickerItems = rundownItems.Count > 0 ? rundownItems.Take(5).ToArray() : _state.TickerItems,
+                RundownItems = pinnedItems,
+                TickerItems = pinnedItems,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
 

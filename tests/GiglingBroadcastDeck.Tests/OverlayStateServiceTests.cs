@@ -50,4 +50,16 @@ public sealed class OverlayStateServiceTests
         Assert.Equal(["Race #1 is open", "Race #2 resolved"], state.RundownItems);
         Assert.Equal(["Race #1 is open", "Race #2 resolved"], state.TickerItems);
     }
+
+    [Fact]
+    public void SetRundown_WithEmptyList_ClearsPinnedTickerFallback()
+    {
+        var service = new OverlayStateService();
+
+        service.SetRundown(["Race #1 is open", "Race #2 resolved"]);
+        var state = service.SetRundown([]);
+
+        Assert.Empty(state.RundownItems);
+        Assert.Empty(state.TickerItems);
+    }
 }
