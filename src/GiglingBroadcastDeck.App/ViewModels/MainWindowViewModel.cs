@@ -13,11 +13,19 @@ using Microsoft.Extensions.Options;
 
 namespace GiglingBroadcastDeck.App.ViewModels;
 
+/// <summary>
+/// Coordinates the operator UI, polling services, local overlay state, and rundown controls.
+/// </summary>
+/// <remarks>
+/// The view model catches unexpected timer/command failures so WPF remains usable during API
+/// outages or malformed public responses.
+/// </remarks>
 public sealed class MainWindowViewModel : ObservableObject
 {
     private readonly IRacePollingService _pollingService;
     private readonly IExploreDataService _exploreDataService;
     private readonly IOverlayStateService _overlayStateService;
+    private readonly IRacePhaseExplainer _racePhaseExplainer;
     private readonly IClipboardSummaryService _clipboardSummaryService;
     private readonly ILocalOverlayServer _overlayServer;
     private readonly IOperatorPreferencesService _preferencesService;
@@ -53,6 +61,7 @@ public sealed class MainWindowViewModel : ObservableObject
         IRacePollingService pollingService,
         IExploreDataService exploreDataService,
         IOverlayStateService overlayStateService,
+        IRacePhaseExplainer racePhaseExplainer,
         IClipboardSummaryService clipboardSummaryService,
         ILocalOverlayServer overlayServer,
         IOperatorPreferencesService preferencesService,
@@ -63,6 +72,7 @@ public sealed class MainWindowViewModel : ObservableObject
         _pollingService = pollingService;
         _exploreDataService = exploreDataService;
         _overlayStateService = overlayStateService;
+        _racePhaseExplainer = racePhaseExplainer;
         _clipboardSummaryService = clipboardSummaryService;
         _overlayServer = overlayServer;
         _preferencesService = preferencesService;
@@ -102,6 +112,9 @@ public sealed class MainWindowViewModel : ObservableObject
         _selectedRaceTimer.Tick += async (_, _) => await RefreshSelectedRaceAsync();
     }
 
+    /// <summary>
+    /// Recent public races displayed in the operator tab.
+    /// </summary>
     public ObservableCollection<RaceSummary> Races { get; } = [];
     public ObservableCollection<RaceSummary> ScheduledRaces { get; } = [];
     public ObservableCollection<StatLine> GlobalStats { get; } = [];
@@ -123,7 +136,14 @@ public sealed class MainWindowViewModel : ObservableObject
     public IRelayCommand AddRundownLineCommand { get; }
     public IRelayCommand ClearRundownCommand { get; }
 
+    /// <summary>
+    /// Local browser-source URL for OBS.
+    /// </summary>
     public string OverlayUrl => _overlayOptions.OverlayUrl;
+
+    /// <summary>
+    /// Local health endpoint used for operator diagnostics.
+    /// </summary>
     public string HealthUrl => _overlayServer.HealthUrl;
 
     public RaceSummary? SelectedRace
@@ -257,6 +277,9 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Starts the local overlay server and initial public data refreshes.
+    /// </summary>
     public async Task StartAsync()
     {
         try
@@ -287,6 +310,9 @@ public sealed class MainWindowViewModel : ObservableObject
         _selectedRaceTimer.Start();
     }
 
+    /// <summary>
+    /// Stops WPF polling timers before app shutdown.
+    /// </summary>
     public void Stop()
     {
         _recentRaceTimer.Stop();
@@ -386,7 +412,7 @@ public sealed class MainWindowViewModel : ObservableObject
             HasError = snapshot.Status == AppStatus.Error;
             IsEmpty = snapshot.Status == AppStatus.Empty;
             IsUnavailable = snapshot.Status == AppStatus.Unavailable;
-            PhaseDescription = RacePhaseDescriptionService.Describe(snapshot.SelectedRaceDetail?.Phase ?? SelectedRace?.Phase);
+            PhaseDescription = _racePhaseExplainer.Explain(snapshot.SelectedRaceDetail?.Phase ?? SelectedRace?.Phase);
             UpdateStatusChips(snapshot);
         }
         finally

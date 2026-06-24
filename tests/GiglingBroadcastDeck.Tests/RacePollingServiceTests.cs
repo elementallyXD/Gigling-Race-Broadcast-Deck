@@ -1,6 +1,7 @@
 using GiglingBroadcastDeck.Core.Mapping;
 using GiglingBroadcastDeck.Core.Models;
 using GiglingBroadcastDeck.Core.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GiglingBroadcastDeck.Tests;
 
@@ -15,7 +16,7 @@ public sealed class RacePollingServiceTests
                 ApiFetchResult<string>.Success("""[{ "id": "race-1", "phase": "OPEN" }]""", DateTimeOffset.UnixEpoch),
                 ApiFetchResult<string>.Failure("temporary failure", DateTimeOffset.UnixEpoch.AddSeconds(5))
             ]);
-        var service = new RacePollingService(client, new RaceMapper());
+        var service = CreateService(client);
 
         var first = await service.RefreshRecentRacesAsync(CancellationToken.None);
         var second = await service.RefreshRecentRacesAsync(CancellationToken.None);
@@ -34,7 +35,7 @@ public sealed class RacePollingServiceTests
         var client = new ScriptedGigaverseClient(
             detailResult: ApiFetchResult<string>.Failure("detail unavailable", DateTimeOffset.UnixEpoch),
             stateResult: ApiFetchResult<string>.Success("""{ "id": "race-2", "status": "RESOLVING" }""", DateTimeOffset.UnixEpoch.AddSeconds(1)));
-        var service = new RacePollingService(client, new RaceMapper());
+        var service = CreateService(client);
 
         var snapshot = await service.SelectRaceAsync(new RaceSummary { RaceId = "race-2" }, CancellationToken.None);
 
@@ -52,7 +53,7 @@ public sealed class RacePollingServiceTests
             [
                 ApiFetchResult<string>.Success("{ not valid json", DateTimeOffset.UnixEpoch)
             ]);
-        var service = new RacePollingService(client, new RaceMapper());
+        var service = CreateService(client);
 
         var snapshot = await service.RefreshRecentRacesAsync(CancellationToken.None);
 
@@ -71,7 +72,7 @@ public sealed class RacePollingServiceTests
                 ApiFetchResult<string>.Success("""[{ "id": "race-1", "phase": "OPEN" }]""", DateTimeOffset.UnixEpoch),
                 ApiFetchResult<string>.Success(malformedBody, DateTimeOffset.UnixEpoch.AddSeconds(5))
             ]);
-        var service = new RacePollingService(client, new RaceMapper());
+        var service = CreateService(client);
 
         await service.RefreshRecentRacesAsync(CancellationToken.None);
         var stale = await service.RefreshRecentRacesAsync(CancellationToken.None);
@@ -92,7 +93,7 @@ public sealed class RacePollingServiceTests
                 ApiFetchResult<string>.Success("""{ "id": "race-2", "phase": "OPEN" }""", DateTimeOffset.UnixEpoch),
                 ApiFetchResult<string>.Success("<html>temporary outage</html>", DateTimeOffset.UnixEpoch.AddSeconds(5))
             ]);
-        var service = new RacePollingService(client, new RaceMapper());
+        var service = CreateService(client);
 
         await service.SelectRaceAsync(new RaceSummary { RaceId = "race-2" }, CancellationToken.None);
         var stale = await service.RefreshSelectedRaceAsync(CancellationToken.None);
@@ -135,4 +136,7 @@ public sealed class RacePollingServiceTests
         public Task<ApiFetchResult<string>> GetLeaderboardRawAsync(CancellationToken cancellationToken) =>
             Task.FromResult(ApiFetchResult<string>.Failure("not used", DateTimeOffset.UnixEpoch));
     }
+
+    private static RacePollingService CreateService(IGigaverseRacingClient client) =>
+        new(client, new RaceMapper(), NullLogger<RacePollingService>.Instance);
 }

@@ -3,8 +3,17 @@ using GiglingBroadcastDeck.Core.Models;
 
 namespace GiglingBroadcastDeck.Core.Mapping;
 
+/// <summary>
+/// Tolerant mapper for public Gigling Racing JSON payloads.
+/// </summary>
+/// <remarks>
+/// The mapper accepts multiple possible field names because hackathon APIs and indexers can
+/// change response shapes. Malformed JSON is allowed to throw <see cref="JsonException"/> so
+/// polling services can mark data stale and preserve the last good snapshot.
+/// </remarks>
 public sealed class RaceMapper : IRaceMapper
 {
+    /// <inheritdoc />
     public IReadOnlyList<RaceSummary> MapRecentRaces(string rawJson, DateTimeOffset fetchedAt)
     {
         using var document = JsonDocument.Parse(rawJson);
@@ -16,6 +25,7 @@ public sealed class RaceMapper : IRaceMapper
             .ToArray();
     }
 
+    /// <inheritdoc />
     public RaceDetail MapRaceDetail(string rawJson, string raceId, DateTimeOffset fetchedAt)
     {
         using var document = JsonDocument.Parse(rawJson);
@@ -53,9 +63,11 @@ public sealed class RaceMapper : IRaceMapper
         };
     }
 
+    /// <inheritdoc />
     public IReadOnlyList<RaceSummary> MapScheduledRaces(string rawJson, DateTimeOffset fetchedAt) =>
         MapRecentRaces(rawJson, fetchedAt);
 
+    /// <inheritdoc />
     public IReadOnlyList<StatLine> MapGlobalStats(string rawJson)
     {
         using var document = JsonDocument.Parse(rawJson);
@@ -76,6 +88,7 @@ public sealed class RaceMapper : IRaceMapper
             .ToArray();
     }
 
+    /// <inheritdoc />
     public IReadOnlyList<LeaderboardEntry> MapLeaderboard(string rawJson)
     {
         using var document = JsonDocument.Parse(rawJson);

@@ -9,6 +9,7 @@
 <body>
   <main id="overlay" class="overlay hidden" aria-live="polite">
     <section id="race-card" class="panel race-card">
+      <div class="panel-rim" aria-hidden="true"></div>
       <p class="eyebrow">Gigling Racing</p>
       <h1 data-field="headline">Race Card</h1>
       <div class="stats">
@@ -42,12 +43,14 @@
     </section>
 
     <section id="result-card" class="panel result-card">
+      <div class="panel-rim" aria-hidden="true"></div>
       <p class="eyebrow">Final Result</p>
       <h1 data-field="result-headline">Race Result</h1>
       <ol data-field="results"></ol>
     </section>
 
     <section id="ticker" class="ticker">
+      <span class="ticker-label">Gigling Live</span>
       <div data-field="ticker-text">Gigling Broadcast Deck</div>
     </section>
   </main>

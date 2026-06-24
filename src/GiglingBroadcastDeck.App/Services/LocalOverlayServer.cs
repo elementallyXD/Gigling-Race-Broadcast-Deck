@@ -15,6 +15,13 @@ using Microsoft.Extensions.Options;
 
 namespace GiglingBroadcastDeck.App.Services;
 
+/// <summary>
+/// Hosts the local Minimal API and static browser overlay used by OBS Browser Source.
+/// </summary>
+/// <remarks>
+/// The server binds only to the configured local host/port and exposes local app state.
+/// It does not proxy authenticated Gigaverse requests or control OBS.
+/// </remarks>
 public sealed class LocalOverlayServer(
     IOptions<OverlayOptions> options,
     IOverlayStateService overlayState,
@@ -24,10 +31,16 @@ public sealed class LocalOverlayServer(
     private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
     private WebApplication? _app;
 
+    /// <inheritdoc />
     public bool IsRunning => _app is not null;
+
+    /// <inheritdoc />
     public string OverlayUrl => _options.OverlayUrl;
+
+    /// <inheritdoc />
     public string HealthUrl => $"{_options.BaseAddress}/api/health";
 
+    /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         if (_app is not null)
@@ -67,6 +80,7 @@ public sealed class LocalOverlayServer(
         }
     }
 
+    /// <inheritdoc />
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         if (_app is null)
@@ -77,6 +91,7 @@ public sealed class LocalOverlayServer(
         await _app.StopAsync(cancellationToken).ConfigureAwait(false);
         await _app.DisposeAsync().ConfigureAwait(false);
         _app = null;
+        logger.LogInformation("Local overlay server stopped.");
     }
 
     private void ConfigureEndpoints(WebApplication app)

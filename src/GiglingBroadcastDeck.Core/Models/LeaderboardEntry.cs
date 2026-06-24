@@ -1,5 +1,8 @@
 namespace GiglingBroadcastDeck.Core.Models;
 
+/// <summary>
+/// Tolerant leaderboard row mapped from public ELO leaderboard data.
+/// </summary>
 public sealed record LeaderboardEntry
 {
     public int? Rank { get; init; }

@@ -1,83 +1,145 @@
-﻿# Gigling Broadcast Deck
+# Gigling Broadcast Deck
 
-Gigling Broadcast Deck is a Windows desktop broadcast and operator tool for Gigling Racing.
-It reads public race data, helps an operator select and explain a race, and serves a local OBS Browser Source overlay.
+Gigling Broadcast Deck is a Windows desktop operator panel and OBS Browser Source overlay for Gigling Racing streams.
 
-The app is intentionally read-only:
+It turns public Gigling Racing race data into clear race cards, result cards, ticker copy, and source-data transparency for creators.
+
+## Problem
+
+Gigling Racing data is useful on stream, but raw API responses are not easy to present live. Streamers need a small control surface that can select a race, explain what is happening, and send a readable overlay to OBS without handling wallets or gameplay actions.
+
+## What It Does
+
+- Fetches public Gigling Racing race data.
+- Shows recent races and selected race details in a WPF operator panel.
+- Preserves raw JSON so race data can be verified during a demo.
+- Serves a local overlay at `http://localhost:5050/overlay`.
+- Lets an operator show a race card, result card, ticker, or hidden overlay.
+- Lets an operator pin and clear rundown/ticker lines.
+- Provides an Explore tab for scheduled races, global stats, and ELO leaderboard context.
+- Copies a concise Discord-friendly race summary.
+
+## MVP Features
+
+- WPF desktop operator panel.
+- Public REST polling with stale/error states.
+- ASP.NET Core Minimal API localhost server.
+- Static HTML/CSS/JS OBS overlay.
+- Overlay modes: `Hidden`, `RaceCard`, `ResultCard`, `Ticker`.
+- Overlay presets: `Broadcast`, `Compact`, `DataDesk`.
+- Overlay positions: lower-left, lower-right, top-left, top-right, bottom.
+- Raw source JSON panel.
+- Loading, empty, API-error, stale-data, fallback, and unavailable-endpoint states.
+- Self-contained Windows publish script.
+
+## Not Supported
+
+This project is intentionally read-only.
 
 - No wallet custody.
+- No private key or seed phrase handling.
 - No transaction signing.
-- No private keys or seed phrases.
-- No auto-play, auto-join, or profit/entry optimization.
+- No race joining.
+- No reward claiming.
+- No item usage.
+- No auto-play or gameplay automation.
+- No authenticated gameplay POST endpoints.
+- No OBS WebSocket control in the MVP.
 
-## Stack
+## Architecture Overview
+
+```text
+Gigling Racing public API
+  -> GigaverseRacingClient
+  -> RaceMapper
+  -> RacePollingService / ExploreDataService
+  -> MainWindowViewModel
+  -> OverlayStateService
+  -> LocalOverlayServer
+  -> /api/overlay-state
+  -> overlay.js
+  -> OBS Browser Source
+```
+
+Projects:
+
+- `src/GiglingBroadcastDeck.Core`: domain models, API client, mapping, polling, overlay state, summary formatting.
+- `src/GiglingBroadcastDeck.App`: WPF UI, dependency injection, local overlay server, preferences, static overlay assets.
+- `tests/GiglingBroadcastDeck.Tests`: xUnit tests for mapping, polling, overlay state, summaries, Explore data, and phase explanations.
+
+More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Technology Stack
 
 - C# / .NET 10
-- WPF desktop UI
-- ASP.NET Core Minimal API local server
-- Static HTML/CSS/JS overlay for OBS Browser Source
-- `HttpClient` and `System.Text.Json`
+- WPF
+- ASP.NET Core Minimal API
+- Static HTML/CSS/JS
+- `HttpClient`
+- `System.Text.Json`
+- xUnit
 
-## Features
+## Build
 
-- Recent race polling and selected-race live refresh.
-- Race intelligence fields such as entry fee, pool, field progress, track length, weather, faction, items, payouts, and source notes when available.
-- Operator rundown with pinned ticker lines, selected-race pins, and one-click clearing.
-- Overlay modes: `Hidden`, `RaceCard`, `ResultCard`, and `Ticker`.
-- Overlay presets: `Broadcast`, `Compact`, and `DataDesk`.
-- Explore tab for scheduled races, global stats, and ELO leaderboard data.
-- Raw JSON transparency panel for source verification.
-- Stale, fallback, unavailable endpoint, and malformed JSON handling.
+```powershell
+dotnet restore GiglingBroadcastDeck.slnx
+dotnet build GiglingBroadcastDeck.slnx --configuration Release
+```
 
 ## Run
 
 ```powershell
-dotnet restore
-dotnet build
 dotnet run --project .\src\GiglingBroadcastDeck.App\GiglingBroadcastDeck.App.csproj
 ```
 
-The local overlay server starts at:
+Default local URLs:
 
-- `http://localhost:5050/overlay`
-- `http://localhost:5050/api/health`
-- `http://localhost:5050/api/overlay-state`
+- Overlay: `http://localhost:5050/overlay`
+- Health: `http://localhost:5050/api/health`
+- Overlay state: `http://localhost:5050/api/overlay-state`
 
 ## Test
 
 ```powershell
-dotnet test
+dotnet test tests\GiglingBroadcastDeck.Tests\GiglingBroadcastDeck.Tests.csproj --configuration Release
 ```
 
 ## Publish Demo Build
 
 ```powershell
-.\scripts\publish-win-x64.ps1
+.\scripts\publish-win-x64.ps1 -Configuration Release
 ```
 
-The release output is created under:
+The publish folder is:
 
 ```text
 src\GiglingBroadcastDeck.App\bin\Release\net10.0-windows\win-x64\publish
 ```
 
-## GitHub Actions
+## OBS Browser Source Setup
 
-The repository includes a Windows GitHub Actions workflow at `.github/workflows/dotnet-desktop.yml`.
+1. Start Gigling Broadcast Deck.
+2. Confirm the app header says the overlay server is running.
+3. Open OBS Studio.
+4. Add Source -> Browser.
+5. URL: `http://localhost:5050/overlay` or the port shown in the app.
+6. Width: `1920`.
+7. Height: `1080`.
+8. Enable transparent background if needed.
+9. Use `Show Race Card`, `Show Result Card`, `Show Ticker`, and `Hide Overlay` in the app.
 
-It validates pushes and pull requests to `main`:
+## Gigaverse Endpoints Used
 
-- Restores `GiglingBroadcastDeck.slnx`.
-- Builds the solution in `Debug` and `Release`.
-- Runs the xUnit test project in both configurations.
-- Uploads test results as workflow artifacts.
+All calls are public read-only `GET` requests under `Gigaverse:BaseUrl`, defaulting to `https://gigaverse.io/api/racing/`.
 
-For pushes to `main` and manual workflow runs, it also:
+- `GET races?limit={RaceLimit}`
+- `GET race/{raceId}`
+- `GET race-state?raceId={raceId}`
+- `GET scheduled`
+- `GET stats`
+- `GET leaderboard/elo?limit=25&offset=0`
 
-- Publishes a self-contained `win-x64` demo build.
-- Uploads the published app as a workflow artifact.
-
-The workflow intentionally does not sign or create an MSIX package yet. The app currently has no Windows Application Packaging Project, signing certificate, or store-upload flow, so CI produces a simple demo-ready publish folder instead.
+Details: [docs/API_NOTES.md](docs/API_NOTES.md).
 
 ## Configuration
 
@@ -85,52 +147,44 @@ Runtime settings live in `src/GiglingBroadcastDeck.App/appsettings.json`.
 
 Important defaults:
 
-- `Gigaverse:BaseUrl`: `https://gigaverse.io/api/racing/`
-- `Gigaverse:RaceLimit`: `50`
-- `Gigaverse:TimeoutSeconds`: `10`
+- `Overlay:Port`: `5050`
 - `Polling:RecentRacesSeconds`: `15`
 - `Polling:SelectedRaceSeconds`: `5`
 - `Polling:StaleAfterSeconds`: `45`
-- `Overlay:Host`: `localhost`
-- `Overlay:Port`: `5050`
-- `Overlay:PollMs`: `1000`
 - `Realtime:Enabled`: `false`
 
-If port `5050` is already in use, the app shows a friendly warning. Free the port or change `Overlay:Port`.
+Operator preferences are stored in the current user's local app data folder and contain only overlay preset, overlay position, and rundown items.
 
-Operator preferences are stored locally under the current Windows user profile. They include overlay preset, overlay position, and rundown items.
+## Known Limitations
 
-`Clear Rundown` removes saved/pinned rundown lines and clears the pinned ticker fallback used by the overlay. If ticker mode is shown with no pinned rundown items, the overlay may still render generated race ticker text from the currently selected race.
+- The app depends on public Gigling Racing API availability.
+- If there are no current races, the race list can be empty.
+- API response shapes may change; the app uses tolerant mapping and stale-data handling.
+- Realtime is disabled for the MVP.
+- There is no built-in mock data mode yet.
+- The publish output is a self-contained folder, not a signed installer.
 
-## MVP Workflow
+## Hackathon Submission Notes
 
-1. Start the desktop app.
-2. Confirm the overlay server status in the header.
-3. Refresh recent races or read the API error shown in the status bar.
-4. Select a race to inspect normalized data and raw JSON.
-5. Choose an overlay preset and position.
-6. Pin selected races or custom ticker lines to the broadcast rundown.
-7. Use the overlay controls to show `Race Card`, `Result Card`, `Ticker`, or `Hidden`.
-8. Click `Clear Rundown` when pinned ticker lines should be removed from the overlay.
-9. Add `http://localhost:5050/overlay` as an OBS Browser Source.
-10. Use the Explore tab for scheduled races, stats, and leaderboard context.
-11. Use `Copy Discord Summary` for a concise race update.
+- Suggested category fit: player/creator tools, analytics, broadcast utility, developer-facing transparency.
+- Primary demo path: select a race, show raw source data, send race card/ticker/result card to OBS, copy Discord summary.
+- Safety statement: the app is read-only and non-custodial; it never signs transactions or automates gameplay.
+
+## Screenshots / GIFs
+
+Add final assets here before submission:
+
+- TODO: operator panel screenshot.
+- TODO: overlay race card screenshot.
+- TODO: 60-90 second demo GIF or video link.
 
 ## Documentation
 
-- Implementation plan: `docs/gigling-broadcast-deck-implementation-plan.md`
-- OBS setup: `docs/obs-setup.md`
-- MVP runbook: `docs/mvp-runbook.md`
-- Source research: `docs/gigling-broadcast-deck-resources.md`
+- [Architecture](docs/ARCHITECTURE.md)
+- [Testing and Demo](docs/TESTING_AND_DEMO.md)
+- [API Notes](docs/API_NOTES.md)
+- [Hackathon Submission](docs/HACKATHON_SUBMISSION.md)
 
-## Verification Checklist
+## License
 
-- `dotnet build` passes.
-- `dotnet test` passes.
-- Desktop app launches.
-- `http://localhost:5050/api/health` returns JSON.
-- `http://localhost:5050/overlay` loads.
-- Race list shows data or a clear API error.
-- Selecting a race updates selected details and raw JSON.
-- Overlay buttons update the browser overlay without reload.
-- `Clear Rundown` removes pinned rundown items from `/api/overlay-state` and from ticker rendering.
+License: TBD. Add a final license before public release.
