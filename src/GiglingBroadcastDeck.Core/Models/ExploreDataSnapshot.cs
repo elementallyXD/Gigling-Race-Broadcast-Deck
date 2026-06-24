@@ -1,5 +1,8 @@
 namespace GiglingBroadcastDeck.Core.Models;
 
+/// <summary>
+/// Combined read-only Explore tab data from public scheduled, stats, and leaderboard endpoints.
+/// </summary>
 public sealed record ExploreDataSnapshot
 {
     public IReadOnlyList<RaceSummary> ScheduledRaces { get; init; } = [];

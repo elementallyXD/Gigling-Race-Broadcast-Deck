@@ -3,6 +3,10 @@
 Gigling Broadcast Deck is a Windows desktop broadcast and operator tool for Gigling Racing.
 It reads public race data, helps an operator select and explain a race, and serves a local OBS Browser Source overlay.
 
+## Problem
+
+Gigling Racing race data is useful for creators, but it is difficult to turn raw public API responses into a clean livestream story quickly. This app gives a stream operator one read-only control surface for race selection, race explanation, OBS overlay output, pinned ticker copy, and transparent raw-source verification.
+
 The app is intentionally read-only:
 
 - No wallet custody.
@@ -28,6 +32,19 @@ The app is intentionally read-only:
 - Explore tab for scheduled races, global stats, and ELO leaderboard data.
 - Raw JSON transparency panel for source verification.
 - Stale, fallback, unavailable endpoint, and malformed JSON handling.
+
+## Public Gigaverse Endpoints Used
+
+All requests are read-only public `GET` requests under `Gigaverse:BaseUrl`.
+
+- `GET races?limit={RaceLimit}` for recent races.
+- `GET race/{raceId}` for selected race detail.
+- `GET race-state?raceId={raceId}` as a diagnostic fallback display source.
+- `GET scheduled` for scheduled race context.
+- `GET stats` for global racing stats.
+- `GET leaderboard/elo?limit=25&offset=0` for Explore leaderboard context.
+
+The app does not call authenticated endpoints, gameplay POST endpoints, wallet endpoints, signing endpoints, or transaction endpoints.
 
 ## Run
 
@@ -116,9 +133,28 @@ Operator preferences are stored locally under the current Windows user profile. 
 10. Use the Explore tab for scheduled races, stats, and leaderboard context.
 11. Use `Copy Discord Summary` for a concise race update.
 
+## Hackathon Demo Flow
+
+1. Launch the app and show that the local overlay server is running.
+2. Open `http://localhost:5050/overlay` in a browser or OBS Browser Source.
+3. Refresh races and select a public race.
+4. Show the Race Intelligence panel and raw JSON transparency panel.
+5. Switch between `Race Card`, `Ticker`, and `Result Card` if the selected race is resolved.
+6. Pin a custom rundown line, show the ticker, then clear the rundown to demonstrate operator control.
+7. Open the Explore tab for scheduled races, stats, and leaderboard context.
+8. Copy a Discord summary as the final creator utility moment.
+
+## Known Limitations
+
+- Public API response shapes may change; the app uses tolerant mapping and raw JSON preservation to reduce demo risk.
+- Realtime updates are disabled by default; REST polling is the stable MVP transport.
+- OBS WebSocket control, Stream Deck integration, wallets, signing, auto-join, auto-play, and gameplay automation are intentionally out of scope.
+- The publish output is a self-contained folder, not a signed installer or MSIX package.
+
 ## Documentation
 
 - Implementation plan: `docs/gigling-broadcast-deck-implementation-plan.md`
+- Architecture notes: `docs/architecture.md`
 - OBS setup: `docs/obs-setup.md`
 - MVP runbook: `docs/mvp-runbook.md`
 - Source research: `docs/gigling-broadcast-deck-resources.md`

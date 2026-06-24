@@ -3,8 +3,14 @@ using System.Text.Json;
 
 namespace GiglingBroadcastDeck.Core.Mapping;
 
+/// <summary>
+/// Defensive JSON helpers for public API payloads with evolving field names and shapes.
+/// </summary>
 public static class JsonElementExtensions
 {
+    /// <summary>
+    /// Looks up an object property without requiring exact casing.
+    /// </summary>
     public static bool TryGetPropertyIgnoreCase(this JsonElement element, string propertyName, out JsonElement value)
     {
         if (element.ValueKind == JsonValueKind.Object)
@@ -23,6 +29,9 @@ public static class JsonElementExtensions
         return false;
     }
 
+    /// <summary>
+    /// Finds the first matching property path, including dotted nested paths such as <c>data.races</c>.
+    /// </summary>
     public static JsonElement? FindFirst(this JsonElement element, params string[] propertyNames)
     {
         foreach (var propertyName in propertyNames)
@@ -36,6 +45,9 @@ public static class JsonElementExtensions
         return null;
     }
 
+    /// <summary>
+    /// Reads string-like scalar JSON values without throwing on wrong types.
+    /// </summary>
     public static string? GetStringValue(this JsonElement element)
     {
         return element.ValueKind switch
@@ -48,6 +60,9 @@ public static class JsonElementExtensions
         };
     }
 
+    /// <summary>
+    /// Reads an integer from a number or numeric string.
+    /// </summary>
     public static int? GetIntValue(this JsonElement element)
     {
         if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out var number))
@@ -64,6 +79,9 @@ public static class JsonElementExtensions
         return null;
     }
 
+    /// <summary>
+    /// Reads a boolean from a boolean or boolean string.
+    /// </summary>
     public static bool? GetBoolValue(this JsonElement element)
     {
         if (element.ValueKind is JsonValueKind.True or JsonValueKind.False)
@@ -80,6 +98,9 @@ public static class JsonElementExtensions
         return null;
     }
 
+    /// <summary>
+    /// Reads ISO date strings or Unix timestamps as UTC-aware values.
+    /// </summary>
     public static DateTimeOffset? GetDateTimeOffsetValue(this JsonElement element)
     {
         if (element.ValueKind == JsonValueKind.String &&
@@ -98,6 +119,9 @@ public static class JsonElementExtensions
         return null;
     }
 
+    /// <summary>
+    /// Reads decimal values and converts large integer-like wei amounts to ETH.
+    /// </summary>
     public static decimal? GetDecimalValue(this JsonElement element)
     {
         decimal? value = element.ValueKind switch
@@ -116,6 +140,9 @@ public static class JsonElementExtensions
         return number > 1_000_000_000_000m ? number / 1_000_000_000_000_000_000m : number;
     }
 
+    /// <summary>
+    /// Treats common wrapper objects as arrays while returning an empty list for unusable shapes.
+    /// </summary>
     public static IReadOnlyList<JsonElement> AsLikelyArray(this JsonElement root)
     {
         if (root.ValueKind == JsonValueKind.Array)
@@ -146,11 +173,17 @@ public static class JsonElementExtensions
         return root.ValueKind == JsonValueKind.Object ? [root] : [];
     }
 
+    /// <summary>
+    /// Reads a decimal array while skipping malformed entries.
+    /// </summary>
     public static IReadOnlyList<decimal> GetDecimalArrayValue(this JsonElement element) =>
         element.ValueKind == JsonValueKind.Array
             ? element.EnumerateArray().Select(item => item.GetDecimalValue()).Where(item => item.HasValue).Select(item => item!.Value).ToArray()
             : [];
 
+    /// <summary>
+    /// Reads an integer array while skipping malformed entries.
+    /// </summary>
     public static IReadOnlyList<int> GetIntArrayValue(this JsonElement element) =>
         element.ValueKind == JsonValueKind.Array
             ? element.EnumerateArray().Select(item => item.GetIntValue()).Where(item => item.HasValue).Select(item => item!.Value).ToArray()

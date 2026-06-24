@@ -3,8 +3,12 @@ using GiglingBroadcastDeck.Core.Models;
 
 namespace GiglingBroadcastDeck.Core.Services;
 
+/// <summary>
+/// Creates concise copy for Discord or stream chat from selected race data.
+/// </summary>
 public sealed class ClipboardSummaryService : IClipboardSummaryService
 {
+    /// <inheritdoc />
     public string CreateSummary(RaceSummary? summary, RaceDetail? detail)
     {
         var raceId = detail?.RaceId ?? summary?.RaceId ?? "unknown";

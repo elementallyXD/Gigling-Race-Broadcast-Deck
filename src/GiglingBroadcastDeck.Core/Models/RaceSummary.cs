@@ -1,5 +1,12 @@
 namespace GiglingBroadcastDeck.Core.Models;
 
+/// <summary>
+/// Compact normalized race row shown in recent and scheduled race lists.
+/// </summary>
+/// <remarks>
+/// The mapper preserves raw source JSON and keeps optional fields nullable so malformed or
+/// partially deployed API responses do not crash the broadcast app.
+/// </remarks>
 public sealed record RaceSummary
 {
     public string RaceId { get; init; } = "";

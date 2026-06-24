@@ -1,8 +1,16 @@
 namespace GiglingBroadcastDeck.Core.Services;
 
-public static class RacePhaseDescriptionService
+/// <summary>
+/// Default lifecycle explainer for the race phases used by Gigling Broadcast Deck.
+/// </summary>
+/// <remarks>
+/// The explainer intentionally accepts unknown values because the public API can evolve
+/// during the hackathon. Unknown phases should inform the operator, not crash the app.
+/// </remarks>
+public sealed class RacePhaseExplainer : IRacePhaseExplainer
 {
-    public static string Describe(string? phase)
+    /// <inheritdoc />
+    public string Explain(string? phase)
     {
         return (phase ?? "Unknown").Trim().ToUpperInvariant() switch
         {

@@ -1,5 +1,12 @@
 namespace GiglingBroadcastDeck.Core.Models;
 
+/// <summary>
+/// JSON-serializable state consumed by the local OBS Browser Source overlay.
+/// </summary>
+/// <remarks>
+/// Keep this model backward compatible with the vanilla JavaScript overlay. Missing race fields
+/// should render as safe fallback copy instead of failing the browser source.
+/// </remarks>
 public sealed record OverlayState
 {
     public OverlayMode Mode { get; init; } = OverlayMode.Hidden;

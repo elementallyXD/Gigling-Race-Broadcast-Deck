@@ -202,7 +202,7 @@ Dependencies: Step 14.
 
 ### Step 16. Add raw JSON and transparency panel
 Goal: Make source data visible and explainable.
-Files/modules: `MainWindow.xaml`, `RacePhaseDescriptionService` or helper.
+Files/modules: `MainWindow.xaml`, `RacePhaseExplainer` or helper.
 Implementation details: Show raw JSON text; add lifecycle explanation for phases `IDLE`, `OPEN`, `RESOLVING`, `RESOLVED`, `CANCELLED`, `Unknown`.
 Tests/checks: Select races in different phases or mock phase values.
 Expected result: Judges/viewers can verify source data.

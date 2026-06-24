@@ -1,11 +1,23 @@
 using System.Text.Json;
 using GiglingBroadcastDeck.Core.Mapping;
 using GiglingBroadcastDeck.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace GiglingBroadcastDeck.Core.Services;
 
-public sealed class ExploreDataService(IGigaverseRacingClient client, IRaceMapper mapper) : IExploreDataService
+/// <summary>
+/// Loads optional public ecosystem data for the Explore tab.
+/// </summary>
+/// <remarks>
+/// Each endpoint is independent: scheduled races, global stats, and leaderboard data can fail
+/// separately while other successful data still appears in the UI.
+/// </remarks>
+public sealed class ExploreDataService(
+    IGigaverseRacingClient client,
+    IRaceMapper mapper,
+    ILogger<ExploreDataService> logger) : IExploreDataService
 {
+    /// <inheritdoc />
     public async Task<ExploreDataSnapshot> RefreshAsync(CancellationToken cancellationToken)
     {
         var fetchedAt = DateTimeOffset.UtcNow;
@@ -42,6 +54,7 @@ public sealed class ExploreDataService(IGigaverseRacingClient client, IRaceMappe
         }
         catch (JsonException ex)
         {
+            logger.LogWarning(ex, "Unable to parse scheduled races public API response.");
             messages.Add($"Scheduled parse failed: {ex.Message}");
             return [];
         }
@@ -62,6 +75,7 @@ public sealed class ExploreDataService(IGigaverseRacingClient client, IRaceMappe
         }
         catch (JsonException ex)
         {
+            logger.LogWarning(ex, "Unable to parse global stats public API response.");
             messages.Add($"Stats parse failed: {ex.Message}");
             return [];
         }
@@ -82,6 +96,7 @@ public sealed class ExploreDataService(IGigaverseRacingClient client, IRaceMappe
         }
         catch (JsonException ex)
         {
+            logger.LogWarning(ex, "Unable to parse leaderboard public API response.");
             messages.Add($"Leaderboard parse failed: {ex.Message}");
             return [];
         }

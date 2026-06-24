@@ -8,7 +8,7 @@ public sealed class OverlayStateServiceTests
     [Fact]
     public void SetMode_StoresSelectedRaceAndCreatesTickerItems()
     {
-        var service = new OverlayStateService();
+        var service = CreateService();
         var race = new RaceSummary
         {
             RaceId = "42",
@@ -28,7 +28,7 @@ public sealed class OverlayStateServiceTests
     [Fact]
     public void Hide_OnlyChangesModeAndKeepsSnapshotReadable()
     {
-        var service = new OverlayStateService();
+        var service = CreateService();
         service.SetMode(OverlayMode.RaceCard, new RaceSummary { RaceId = "99" }, null);
 
         var state = service.Hide();
@@ -40,7 +40,7 @@ public sealed class OverlayStateServiceTests
     [Fact]
     public void SetPresetAndRundown_UpdateOverlaySnapshot()
     {
-        var service = new OverlayStateService();
+        var service = CreateService();
 
         service.SetPreset(OverlayPreset.DataDesk, OverlayPosition.TopRight);
         var state = service.SetRundown(["Race #1 is open", "Race #2 resolved"]);
@@ -54,7 +54,7 @@ public sealed class OverlayStateServiceTests
     [Fact]
     public void SetRundown_WithEmptyList_ClearsPinnedTickerFallback()
     {
-        var service = new OverlayStateService();
+        var service = CreateService();
 
         service.SetRundown(["Race #1 is open", "Race #2 resolved"]);
         var state = service.SetRundown([]);
@@ -62,4 +62,7 @@ public sealed class OverlayStateServiceTests
         Assert.Empty(state.RundownItems);
         Assert.Empty(state.TickerItems);
     }
+
+    private static OverlayStateService CreateService() =>
+        new(new RacePhaseExplainer());
 }

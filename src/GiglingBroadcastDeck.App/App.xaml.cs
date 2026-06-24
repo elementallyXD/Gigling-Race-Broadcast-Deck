@@ -12,6 +12,9 @@ using Microsoft.Extensions.Options;
 
 namespace GiglingBroadcastDeck.App;
 
+/// <summary>
+/// WPF application entry point and dependency-injection composition root.
+/// </summary>
 public partial class App : Application
 {
     private ServiceProvider? _services;
@@ -32,6 +35,7 @@ public partial class App : Application
         try
         {
             _services = ConfigureServices();
+            _services.GetRequiredService<ILogger<App>>().LogInformation("Gigling Broadcast Deck starting.");
             var window = _services.GetRequiredService<MainWindow>();
             window.Show();
         }
@@ -50,6 +54,7 @@ public partial class App : Application
     {
         if (_services is not null)
         {
+            _services.GetRequiredService<ILogger<App>>().LogInformation("Gigling Broadcast Deck shutting down.");
             var overlayServer = _services.GetRequiredService<ILocalOverlayServer>();
             await overlayServer.StopAsync(CancellationToken.None);
             await _services.DisposeAsync();
@@ -93,6 +98,7 @@ public partial class App : Application
         services.AddSingleton<IGigaverseRacingClient, GigaverseRacingClient>();
         services.AddSingleton<IRacePollingService, RacePollingService>();
         services.AddSingleton<IExploreDataService, ExploreDataService>();
+        services.AddSingleton<IRacePhaseExplainer, RacePhaseExplainer>();
         services.AddSingleton<IOverlayStateService, OverlayStateService>();
         services.AddSingleton<IClipboardSummaryService, ClipboardSummaryService>();
         services.AddSingleton<IRealtimeRaceFeed, DisabledRealtimeRaceFeed>();

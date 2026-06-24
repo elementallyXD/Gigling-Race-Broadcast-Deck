@@ -1,16 +1,29 @@
 using GiglingBroadcastDeck.Core.Mapping;
 using GiglingBroadcastDeck.Core.Models;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace GiglingBroadcastDeck.Core.Services;
 
-public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMapper mapper) : IRacePollingService
+/// <summary>
+/// Polls public race endpoints and maintains the app's last known safe race data.
+/// </summary>
+/// <remarks>
+/// Overlapping requests are skipped through a lightweight gate. Invalid JSON and network
+/// failures are converted into user-visible status rather than escaping into the WPF timer path.
+/// </remarks>
+public sealed class RacePollingService(
+    IGigaverseRacingClient client,
+    IRaceMapper mapper,
+    ILogger<RacePollingService> logger) : IRacePollingService
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private RaceSummary? _selectedRace;
 
+    /// <inheritdoc />
     public RaceDataSnapshot Snapshot { get; private set; } = new();
 
+    /// <inheritdoc />
     public async Task<RaceDataSnapshot> RefreshRecentRacesAsync(CancellationToken cancellationToken)
     {
         if (!await _gate.WaitAsync(0, cancellationToken).ConfigureAwait(false))
@@ -33,6 +46,7 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
             }
             catch (JsonException ex)
             {
+                logger.LogWarning(ex, "Unable to parse recent races public API response.");
                 return MarkFailure($"Unable to parse recent races response: {ex.Message}", result.FetchedAt);
             }
 
@@ -54,12 +68,14 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
         }
     }
 
+    /// <inheritdoc />
     public async Task<RaceDataSnapshot> SelectRaceAsync(RaceSummary race, CancellationToken cancellationToken)
     {
         _selectedRace = race;
         return await RefreshSelectedRaceAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public async Task<RaceDataSnapshot> RefreshSelectedRaceAsync(CancellationToken cancellationToken)
     {
         if (_selectedRace is null)
@@ -90,6 +106,7 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
             }
             catch (JsonException ex)
             {
+                logger.LogWarning(ex, "Unable to parse selected race public API response for race {RaceId}.", _selectedRace.RaceId);
                 return MarkFailure($"Unable to parse selected race response: {ex.Message}", result.FetchedAt);
             }
 
@@ -134,6 +151,7 @@ public sealed class RacePollingService(IGigaverseRacingClient client, IRaceMappe
         }
         catch (JsonException ex)
         {
+            logger.LogWarning(ex, "Unable to parse race-state fallback public API response for race {RaceId}.", _selectedRace.RaceId);
             return MarkFailure($"Unable to parse race-state fallback response: {ex.Message}", fallback.FetchedAt);
         }
 

@@ -1,6 +1,7 @@
 using GiglingBroadcastDeck.Core.Mapping;
 using GiglingBroadcastDeck.Core.Models;
 using GiglingBroadcastDeck.Core.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GiglingBroadcastDeck.Tests;
 
@@ -15,7 +16,7 @@ public sealed class ExploreDataServiceTests
             Stats = ApiFetchResult<string>.Failure("stats outage", DateTimeOffset.UnixEpoch),
             Leaderboard = ApiFetchResult<string>.Success("""[{ "petName": "Dash", "elo": 1400 }]""", DateTimeOffset.UnixEpoch)
         };
-        var service = new ExploreDataService(client, new RaceMapper());
+        var service = new ExploreDataService(client, new RaceMapper(), NullLogger<ExploreDataService>.Instance);
 
         var snapshot = await service.RefreshAsync(CancellationToken.None);
 

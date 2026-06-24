@@ -2,7 +2,14 @@ using GiglingBroadcastDeck.Core.Models;
 
 namespace GiglingBroadcastDeck.Core.Services;
 
-public sealed class OverlayStateService : IOverlayStateService
+/// <summary>
+/// Stores the current server-owned OBS overlay state shared by WPF controls and the local API.
+/// </summary>
+/// <remarks>
+/// State is in-memory and thread-safe. The service preserves the last requested overlay mode
+/// until the operator changes it, so temporary polling failures do not clear the visible overlay.
+/// </remarks>
+public sealed class OverlayStateService(IRacePhaseExplainer racePhaseExplainer) : IOverlayStateService
 {
     private readonly object _gate = new();
     private OverlayState _state = new();
@@ -28,7 +35,7 @@ public sealed class OverlayStateService : IOverlayStateService
                 Headline = headline,
                 TickerItems = CreateTickerItems(selectedRace, selectedRaceDetail),
                 SourceNote = CreateSourceNote(selectedRace, selectedRaceDetail),
-                LifecycleText = RacePhaseDescriptionService.Describe(selectedRaceDetail?.Phase ?? selectedRace?.Phase),
+                LifecycleText = racePhaseExplainer.Explain(selectedRaceDetail?.Phase ?? selectedRace?.Phase),
                 UpdatedAt = DateTimeOffset.UtcNow
             };
 

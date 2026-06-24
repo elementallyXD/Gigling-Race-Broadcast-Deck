@@ -1,5 +1,12 @@
 namespace GiglingBroadcastDeck.Core.Models;
 
+/// <summary>
+/// Detailed normalized race data used by the operator panel and overlay.
+/// </summary>
+/// <remarks>
+/// Most fields are nullable because public API shapes can change or omit optional race metadata.
+/// Raw JSON is preserved for transparency and hackathon judge verification.
+/// </remarks>
 public sealed record RaceDetail
 {
     public string RaceId { get; init; } = "";
