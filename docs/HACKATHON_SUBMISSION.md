@@ -23,9 +23,6 @@ The app reads public Gigling Racing REST endpoints for:
 - Recent races.
 - Selected race details.
 - Race-state fallback diagnostics.
-- Scheduled races.
-- Global stats.
-- ELO leaderboard context.
 
 It normalizes API data into internal models and keeps raw JSON visible for transparency.
 
@@ -36,10 +33,9 @@ It normalizes API data into internal models and keeps raw JSON visible for trans
 - Race card, result card, ticker, and hidden overlay modes.
 - Overlay presets and positions.
 - Recent race polling and selected race refresh.
-- Explore tab for scheduled races, stats, and leaderboard.
 - Broadcast rundown with pinned ticker lines.
 - Raw JSON transparency panel.
-- Discord summary copy.
+- Discord summary copy with resolved-race places and owner names/addresses when final order data is available.
 - Stale/error/fallback states for public API failures.
 
 ## What Makes It Unique

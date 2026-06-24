@@ -40,4 +40,9 @@ public interface IGigaverseRacingClient
     /// Gets public ELO leaderboard data.
     /// </summary>
     Task<ApiFetchResult<string>> GetLeaderboardRawAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets public account summary data for a wallet address so owner usernames can be displayed.
+    /// </summary>
+    Task<ApiFetchResult<string>> GetNoobSummaryRawAsync(string walletAddress, CancellationToken cancellationToken);
 }

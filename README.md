@@ -15,9 +15,9 @@ Gigling Racing data is useful on stream, but raw API responses are not easy to p
 - Preserves raw JSON so race data can be verified during a demo.
 - Serves a local overlay at `http://localhost:5050/overlay`.
 - Lets an operator show a race card, result card, ticker, or hidden overlay.
+- Shows race card metadata such as phase, entrants, pool, track, weather/temperature, creator, start time, access, and source when available.
 - Lets an operator pin and clear rundown/ticker lines.
-- Provides an Explore tab for scheduled races, global stats, and ELO leaderboard context.
-- Copies a concise Discord-friendly race summary.
+- Copies a detailed Discord-friendly race summary, including result places and owner names/addresses when a resolved race exposes that data.
 
 ## MVP Features
 
@@ -52,7 +52,7 @@ This project is intentionally read-only.
 Gigling Racing public API
   -> GigaverseRacingClient
   -> RaceMapper
-  -> RacePollingService / ExploreDataService
+  -> RacePollingService
   -> MainWindowViewModel
   -> OverlayStateService
   -> LocalOverlayServer
@@ -65,7 +65,7 @@ Projects:
 
 - `src/GiglingBroadcastDeck.Core`: domain models, API client, mapping, polling, overlay state, summary formatting.
 - `src/GiglingBroadcastDeck.App`: WPF UI, dependency injection, local overlay server, preferences, static overlay assets.
-- `tests/GiglingBroadcastDeck.Tests`: xUnit tests for mapping, polling, overlay state, summaries, Explore data, and phase explanations.
+- `tests/GiglingBroadcastDeck.Tests`: xUnit tests for mapping, polling, overlay state, summaries, and phase explanations.
 
 More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -135,9 +135,6 @@ All calls are public read-only `GET` requests under `Gigaverse:BaseUrl`, default
 - `GET races?limit={RaceLimit}`
 - `GET race/{raceId}`
 - `GET race-state?raceId={raceId}`
-- `GET scheduled`
-- `GET stats`
-- `GET leaderboard/elo?limit=25&offset=0`
 
 Details: [docs/API_NOTES.md](docs/API_NOTES.md).
 
@@ -161,13 +158,14 @@ Operator preferences are stored in the current user's local app data folder and 
 - If there are no current races, the race list can be empty.
 - API response shapes may change; the app uses tolerant mapping and stale-data handling.
 - Realtime is disabled for the MVP.
+- `Show Positions` is temporarily disabled while live-position rendering is refined.
 - There is no built-in mock data mode yet.
 - The publish output is a self-contained folder, not a signed installer.
 
 ## Hackathon Submission Notes
 
 - Suggested category fit: player/creator tools, analytics, broadcast utility, developer-facing transparency.
-- Primary demo path: select a race, show raw source data, send race card/ticker/result card to OBS, copy Discord summary.
+- Primary demo path: select a race, show raw source data, send race card/ticker/result card to OBS, copy a Discord summary with final places and owners for resolved races when available.
 - Safety statement: the app is read-only and non-custodial; it never signs transactions or automates gameplay.
 
 ## Screenshots / GIFs

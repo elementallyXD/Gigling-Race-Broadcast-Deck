@@ -23,7 +23,6 @@ namespace GiglingBroadcastDeck.App.ViewModels;
 public sealed class MainWindowViewModel : ObservableObject
 {
     private readonly IRacePollingService _pollingService;
-    private readonly IExploreDataService _exploreDataService;
     private readonly IOverlayStateService _overlayStateService;
     private readonly IRacePhaseExplainer _racePhaseExplainer;
     private readonly IClipboardSummaryService _clipboardSummaryService;
@@ -50,16 +49,12 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isRefreshing;
     private bool _isRefreshingSelected;
     private bool _isApplyingSnapshot;
-    private bool _isRefreshingExplore;
-    private bool _isExploreLoading;
     private string _newRundownText = "";
-    private string _exploreStatusText = "Explore data has not loaded yet.";
     private OverlayPreset _selectedOverlayPreset = OverlayPreset.Broadcast;
     private OverlayPosition _selectedOverlayPosition = OverlayPosition.LowerLeft;
 
     public MainWindowViewModel(
         IRacePollingService pollingService,
-        IExploreDataService exploreDataService,
         IOverlayStateService overlayStateService,
         IRacePhaseExplainer racePhaseExplainer,
         IClipboardSummaryService clipboardSummaryService,
@@ -70,7 +65,6 @@ public sealed class MainWindowViewModel : ObservableObject
         ILogger<MainWindowViewModel> logger)
     {
         _pollingService = pollingService;
-        _exploreDataService = exploreDataService;
         _overlayStateService = overlayStateService;
         _racePhaseExplainer = racePhaseExplainer;
         _clipboardSummaryService = clipboardSummaryService;
@@ -81,15 +75,16 @@ public sealed class MainWindowViewModel : ObservableObject
         _logger = logger;
 
         RefreshRacesCommand = new AsyncRelayCommand(RefreshRacesAsync);
-        RefreshExploreCommand = new AsyncRelayCommand(RefreshExploreAsync);
         ShowRaceCardCommand = new RelayCommand(() => SetOverlayMode(OverlayMode.RaceCard), CanShowSelectedRaceOverlay);
         ShowResultCardCommand = new RelayCommand(() => SetOverlayMode(OverlayMode.ResultCard), CanShowResultOverlay);
+        ShowPositionsCommand = new RelayCommand(() => SetOverlayMode(OverlayMode.Positions), CanShowSelectedRaceOverlay);
         ShowTickerCommand = new RelayCommand(() => SetOverlayMode(OverlayMode.Ticker), CanShowSelectedRaceOverlay);
         HideOverlayCommand = new RelayCommand(HideOverlay);
         CopyDiscordSummaryCommand = new RelayCommand(CopyDiscordSummary, CanShowSelectedRaceOverlay);
         AddSelectedRaceToRundownCommand = new RelayCommand(AddSelectedRaceToRundown, CanShowSelectedRaceOverlay);
         AddRundownLineCommand = new RelayCommand(AddRundownLine, () => !string.IsNullOrWhiteSpace(NewRundownText));
         ClearRundownCommand = new RelayCommand(ClearRundown);
+        SelectRundownRaceCommand = new RelayCommand<string?>(SelectRundownRace);
 
         var preferences = _preferencesService.Load();
         _selectedOverlayPreset = preferences.OverlayPreset;
@@ -116,9 +111,6 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Recent public races displayed in the operator tab.
     /// </summary>
     public ObservableCollection<RaceSummary> Races { get; } = [];
-    public ObservableCollection<RaceSummary> ScheduledRaces { get; } = [];
-    public ObservableCollection<StatLine> GlobalStats { get; } = [];
-    public ObservableCollection<LeaderboardEntry> Leaderboard { get; } = [];
     public ObservableCollection<string> RundownItems { get; } = [];
     public ObservableCollection<string> StatusChips { get; } = [];
 
@@ -126,15 +118,16 @@ public sealed class MainWindowViewModel : ObservableObject
     public IReadOnlyList<OverlayPosition> OverlayPositions { get; } = Enum.GetValues<OverlayPosition>();
 
     public IAsyncRelayCommand RefreshRacesCommand { get; }
-    public IAsyncRelayCommand RefreshExploreCommand { get; }
     public IRelayCommand ShowRaceCardCommand { get; }
     public IRelayCommand ShowResultCardCommand { get; }
+    public IRelayCommand ShowPositionsCommand { get; }
     public IRelayCommand ShowTickerCommand { get; }
     public IRelayCommand HideOverlayCommand { get; }
     public IRelayCommand CopyDiscordSummaryCommand { get; }
     public IRelayCommand AddSelectedRaceToRundownCommand { get; }
     public IRelayCommand AddRundownLineCommand { get; }
     public IRelayCommand ClearRundownCommand { get; }
+    public IRelayCommand<string?> SelectRundownRaceCommand { get; }
 
     /// <summary>
     /// Local browser-source URL for OBS.
@@ -229,18 +222,6 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _isOverlayServerRunning, value);
     }
 
-    public bool IsExploreLoading
-    {
-        get => _isExploreLoading;
-        private set => SetProperty(ref _isExploreLoading, value);
-    }
-
-    public string ExploreStatusText
-    {
-        get => _exploreStatusText;
-        private set => SetProperty(ref _exploreStatusText, value);
-    }
-
     public string NewRundownText
     {
         get => _newRundownText;
@@ -305,7 +286,6 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         await RefreshRacesAsync();
-        await RefreshExploreAsync();
         _recentRaceTimer.Start();
         _selectedRaceTimer.Start();
     }
@@ -492,36 +472,6 @@ public sealed class MainWindowViewModel : ObservableObject
         !string.IsNullOrWhiteSpace(selectedRaceId) &&
         string.Equals(raceId, selectedRaceId, StringComparison.OrdinalIgnoreCase);
 
-    private async Task RefreshExploreAsync()
-    {
-        if (_isRefreshingExplore)
-        {
-            return;
-        }
-
-        _isRefreshingExplore = true;
-        IsExploreLoading = true;
-
-        try
-        {
-            var snapshot = await _exploreDataService.RefreshAsync(CancellationToken.None);
-            ReplaceCollection(ScheduledRaces, snapshot.ScheduledRaces);
-            ReplaceCollection(GlobalStats, snapshot.GlobalStats);
-            ReplaceCollection(Leaderboard, snapshot.Leaderboard);
-            ExploreStatusText = FormatExploreStatus(snapshot);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error while refreshing Explore data.");
-            ExploreStatusText = $"Explore refresh failed: {ex.Message}";
-        }
-        finally
-        {
-            _isRefreshingExplore = false;
-            IsExploreLoading = false;
-        }
-    }
-
     private void AddSelectedRaceToRundown()
     {
         if (SelectedRace is null && SelectedRaceDetail is null)
@@ -545,6 +495,25 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         RundownItems.Clear();
         PushRundownToOverlay();
+    }
+
+    private void SelectRundownRace(string? rundownItem)
+    {
+        var raceId = RundownRaceReferenceParser.TryExtractRaceId(rundownItem);
+        if (raceId is null)
+        {
+            return;
+        }
+
+        var race = Races.FirstOrDefault(item => string.Equals(item.RaceId, raceId, StringComparison.OrdinalIgnoreCase));
+        if (race is null)
+        {
+            StatusText = $"Pinned race #{raceId} is not in the current race list. Refresh races and try again.";
+            return;
+        }
+
+        SelectedRace = race;
+        StatusText = $"Selected pinned race #{raceId}.";
     }
 
     private void AddRundownItem(string item)
@@ -641,6 +610,7 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         ShowRaceCardCommand.NotifyCanExecuteChanged();
         ShowResultCardCommand.NotifyCanExecuteChanged();
+        ShowPositionsCommand.NotifyCanExecuteChanged();
         ShowTickerCommand.NotifyCanExecuteChanged();
         CopyDiscordSummaryCommand.NotifyCanExecuteChanged();
         AddSelectedRaceToRundownCommand.NotifyCanExecuteChanged();
@@ -675,21 +645,6 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
-    private static string FormatExploreStatus(ExploreDataSnapshot snapshot)
-    {
-        var fetched = snapshot.LastFetchedAt?.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-        return fetched is null ? snapshot.Message : $"{snapshot.Message} Last fetch: {fetched}.";
-    }
-
     private static string FormatEntrants(int? current, int? max) =>
         current is null && max is null ? "Entrants unknown" : $"Entrants {current?.ToString(CultureInfo.InvariantCulture) ?? "?"}/{max?.ToString(CultureInfo.InvariantCulture) ?? "?"}";
-
-    private static void ReplaceCollection<T>(ObservableCollection<T> target, IReadOnlyList<T> source)
-    {
-        target.Clear();
-        foreach (var item in source)
-        {
-            target.Add(item);
-        }
-    }
 }

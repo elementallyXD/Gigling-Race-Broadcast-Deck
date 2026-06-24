@@ -18,6 +18,7 @@ public sealed class RacePollingService(
     ILogger<RacePollingService> logger) : IRacePollingService
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly Dictionary<string, OwnerProfile?> _ownerProfileCache = new(StringComparer.OrdinalIgnoreCase);
     private RaceSummary? _selectedRace;
 
     /// <inheritdoc />
@@ -103,6 +104,7 @@ public sealed class RacePollingService(
             try
             {
                 detail = mapper.MapRaceDetail(result.Value, _selectedRace.RaceId, result.FetchedAt);
+                detail = await EnrichOwnerNamesAsync(detail, cancellationToken).ConfigureAwait(false);
             }
             catch (JsonException ex)
             {
@@ -148,6 +150,7 @@ public sealed class RacePollingService(
         try
         {
             detail = mapper.MapRaceDetail(fallback.Value, _selectedRace.RaceId, fallback.FetchedAt);
+            detail = await EnrichOwnerNamesAsync(detail, cancellationToken).ConfigureAwait(false);
         }
         catch (JsonException ex)
         {
@@ -178,5 +181,269 @@ public sealed class RacePollingService(
         };
 
         return Snapshot;
+    }
+
+    private async Task<RaceDetail> EnrichOwnerNamesAsync(RaceDetail detail, CancellationToken cancellationToken)
+    {
+        var ownerAddresses = detail.ResultEntrants
+            .Concat(detail.LivePositions)
+            .Select(entrant => entrant.OwnerAddress)
+            .Where(address => !string.IsNullOrWhiteSpace(address))
+            .Select(address => address!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (ownerAddresses.Length == 0)
+        {
+            return detail;
+        }
+
+        foreach (var ownerAddress in ownerAddresses)
+        {
+            if (!_ownerProfileCache.ContainsKey(ownerAddress))
+            {
+                _ownerProfileCache[ownerAddress] = await TryGetOwnerProfileAsync(ownerAddress, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        return detail with
+        {
+            ResultEntrants = detail.ResultEntrants.Select(EnrichEntrantOwnerProfile).ToArray(),
+            LivePositions = detail.LivePositions.Select(EnrichEntrantOwnerProfile).ToArray()
+        };
+    }
+
+    private RaceEntrant EnrichEntrantOwnerProfile(RaceEntrant entrant)
+    {
+        if (string.IsNullOrWhiteSpace(entrant.OwnerAddress) ||
+            !_ownerProfileCache.TryGetValue(entrant.OwnerAddress, out var profile) ||
+            profile is null)
+        {
+            return entrant;
+        }
+
+        var topPetMatchesEntrant = !string.IsNullOrWhiteSpace(profile.TopPetId) &&
+            (string.Equals(profile.TopPetId, entrant.PetId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(profile.TopPetId, entrant.DisplayName, StringComparison.OrdinalIgnoreCase));
+
+        return entrant with
+        {
+            OwnerName = string.IsNullOrWhiteSpace(entrant.OwnerName) ? profile.Username : entrant.OwnerName,
+            OwnerHasNoob = entrant.OwnerHasNoob ?? profile.HasNoob,
+            OwnerNoobId = entrant.OwnerNoobId ?? profile.NoobId,
+            OwnerPetCount = entrant.OwnerPetCount ?? profile.PetCount,
+            OwnerEnergy = entrant.OwnerEnergy ?? profile.Energy,
+            OwnerMaxEnergy = entrant.OwnerMaxEnergy ?? profile.MaxEnergy,
+            OwnerTopPetId = entrant.OwnerTopPetId ?? profile.TopPetId,
+            OwnerTopPetName = entrant.OwnerTopPetName ?? profile.TopPetName,
+            OwnerTopPetRarity = entrant.OwnerTopPetRarity ?? profile.TopPetRarity,
+            OwnerTopPetGender = entrant.OwnerTopPetGender ?? profile.TopPetGender,
+            OwnerTopPetElo = entrant.OwnerTopPetElo ?? profile.TopPetElo,
+            PetRarity = entrant.PetRarity ?? (topPetMatchesEntrant ? profile.TopPetRarity : null),
+            PetGender = entrant.PetGender ?? (topPetMatchesEntrant ? profile.TopPetGender : null),
+            PetElo = entrant.PetElo ?? (topPetMatchesEntrant ? profile.TopPetElo : null)
+        };
+    }
+
+    private async Task<OwnerProfile?> TryGetOwnerProfileAsync(string ownerAddress, CancellationToken cancellationToken)
+    {
+        var result = await client.GetNoobSummaryRawAsync(ownerAddress, cancellationToken).ConfigureAwait(false);
+        if (!result.IsSuccess || string.IsNullOrWhiteSpace(result.Value))
+        {
+            logger.LogInformation(
+                "Unable to resolve public username for owner {OwnerAddress}: {Message}",
+                ownerAddress,
+                result.ErrorMessage ?? "empty response");
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(result.Value);
+            var root = document.RootElement;
+            return new OwnerProfile
+            {
+                Username = ReadString(root, "summary.username", "username", "data.username"),
+                HasNoob = ReadBool(root, "summary.hasNoob", "hasNoob", "data.hasNoob"),
+                NoobId = ReadInt(root, "summary.noobId", "noobId", "data.noobId"),
+                PetCount = ReadInt(root, "summary.petCount", "petCount", "data.petCount"),
+                Energy = ReadInt(root, "summary.energyValue", "energyValue", "data.energyValue"),
+                MaxEnergy = ReadInt(root, "summary.maxEnergy", "maxEnergy", "data.maxEnergy"),
+                TopPetId = ReadString(root, "summary.topRacingGigling.petId", "topRacingGigling.petId"),
+                TopPetName = ReadString(root, "summary.topRacingGigling.name", "topRacingGigling.name"),
+                TopPetRarity = NormalizeRarity(ReadString(root, "summary.topRacingGigling.rarity", "topRacingGigling.rarity")),
+                TopPetGender = ReadString(root, "summary.topRacingGigling.gender", "topRacingGigling.gender"),
+                TopPetElo = ReadDecimal(root, "summary.topRacingGigling.elo", "topRacingGigling.elo")
+            };
+        }
+        catch (JsonException ex)
+        {
+            logger.LogInformation(ex, "Unable to parse public username response for owner {OwnerAddress}.", ownerAddress);
+            return null;
+        }
+    }
+
+    private sealed record OwnerProfile
+    {
+        public string? Username { get; init; }
+        public bool? HasNoob { get; init; }
+        public int? NoobId { get; init; }
+        public int? PetCount { get; init; }
+        public int? Energy { get; init; }
+        public int? MaxEnergy { get; init; }
+        public string? TopPetId { get; init; }
+        public string? TopPetName { get; init; }
+        public string? TopPetRarity { get; init; }
+        public string? TopPetGender { get; init; }
+        public decimal? TopPetElo { get; init; }
+    }
+
+    private static string? ReadString(JsonElement root, params string[] paths)
+    {
+        foreach (var path in paths)
+        {
+            if (TryReadString(root, path, out var value))
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    private static int? ReadInt(JsonElement root, params string[] paths)
+    {
+        foreach (var path in paths)
+        {
+            if (!TryReadValue(root, path, out var value))
+            {
+                continue;
+            }
+
+            if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number))
+            {
+                return number;
+            }
+
+            if (value.ValueKind == JsonValueKind.String &&
+                int.TryParse(value.GetString(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out number))
+            {
+                return number;
+            }
+        }
+
+        return null;
+    }
+
+    private static decimal? ReadDecimal(JsonElement root, params string[] paths)
+    {
+        foreach (var path in paths)
+        {
+            if (!TryReadValue(root, path, out var value))
+            {
+                continue;
+            }
+
+            if (value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number))
+            {
+                return number;
+            }
+
+            if (value.ValueKind == JsonValueKind.String &&
+                decimal.TryParse(value.GetString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number))
+            {
+                return number;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool? ReadBool(JsonElement root, params string[] paths)
+    {
+        foreach (var path in paths)
+        {
+            if (!TryReadValue(root, path, out var value))
+            {
+                continue;
+            }
+
+            if (value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                return value.GetBoolean();
+            }
+
+            if (value.ValueKind == JsonValueKind.String && bool.TryParse(value.GetString(), out var parsed))
+            {
+                return parsed;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? NormalizeRarity(string? value) =>
+        value?.Trim() switch
+        {
+            "0" => "Common",
+            "1" => "Uncommon",
+            "2" => "Rare",
+            "3" => "Epic",
+            "4" => "Legendary",
+            "5" => "Relic",
+            "6" => "Giga",
+            "" or null => null,
+            var text => text
+        };
+
+    private static bool TryReadString(JsonElement root, string path, out string? value)
+    {
+        if (!TryReadValue(root, path, out var current))
+        {
+            value = null;
+            return false;
+        }
+
+        value = current.ValueKind switch
+        {
+            JsonValueKind.String => current.GetString(),
+            JsonValueKind.Number => current.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            _ => null
+        };
+
+        return !string.IsNullOrWhiteSpace(value);
+    }
+
+    private static bool TryReadValue(JsonElement root, string path, out JsonElement value)
+    {
+        var current = root;
+        foreach (var segment in path.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (current.ValueKind != JsonValueKind.Object || !TryGetPropertyIgnoreCase(current, segment, out current))
+            {
+                value = default;
+                return false;
+            }
+        }
+
+        value = current;
+        return true;
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement element, string propertyName, out JsonElement value)
+    {
+        foreach (var property in element.EnumerateObject())
+        {
+            if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                value = property.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
     }
 }

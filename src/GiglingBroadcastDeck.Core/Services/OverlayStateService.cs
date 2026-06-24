@@ -96,6 +96,7 @@ public sealed class OverlayStateService(IRacePhaseExplainer racePhaseExplainer) 
         {
             OverlayMode.RaceCard => $"Race #{raceId} - {phase}",
             OverlayMode.ResultCard => $"Result - Race #{raceId}",
+            OverlayMode.Positions => $"Live Positions - Race #{raceId}",
             OverlayMode.Ticker => $"Gigling Racing: Race #{raceId} is {phase}",
             _ => ""
         };

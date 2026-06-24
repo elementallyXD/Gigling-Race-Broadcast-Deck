@@ -43,15 +43,16 @@ If the configured port changed, use the overlay URL shown in the app header.
 - [ ] Recent races load or a clear API error is shown.
 - [ ] Selecting a race updates the selected race panel.
 - [ ] Raw/source JSON is visible.
-- [ ] `Show Race Card` updates the overlay.
+- [ ] `Show Race Card` updates the overlay with phase, entrants, pool, track, weather/temperature, creator, start time, access, and source when available.
 - [ ] `Show Result Card` updates the overlay when the selected race is resolved.
+- [ ] `Show Positions` is disabled.
 - [ ] `Show Ticker` updates the overlay.
 - [ ] `Hide Overlay` hides the overlay.
 - [ ] `Pin Ticker Line` adds custom ticker copy.
 - [ ] `Pin Selected Race` adds a race-based rundown line.
+- [ ] Double-clicking a pinned race line selects that race when it is still in the recent race list.
 - [ ] `Clear Rundown` clears pinned rundown/ticker lines.
-- [ ] `Copy Discord Summary` copies text.
-- [ ] Explore tab loads scheduled races, stats, or leaderboard data when endpoints are available.
+- [ ] `Copy Discord Summary` copies detailed text, including result places and owner names/addresses for resolved races when available.
 - [ ] API failure does not crash the app.
 - [ ] Missing fields do not crash the app.
 - [ ] Port conflict is handled or clearly reported.
@@ -79,7 +80,7 @@ If the configured port changed, use the overlay URL shown in the app header.
 6. Click `Show Race Card`.
 7. Show the overlay in a browser or OBS Browser Source.
 8. Click `Show Ticker` or `Show Result Card`.
-9. Click `Copy Discord Summary` and briefly show the generated text.
+9. Click `Copy Discord Summary` and briefly show the generated text. If the race is resolved, point out final places and owner names/addresses when available.
 10. End with future potential: mock demo mode, public realtime updates, and more polished overlay themes.
 
 ## Known Demo Risks
@@ -87,7 +88,7 @@ If the configured port changed, use the overlay URL shown in the app header.
 - Gigling Racing API unavailable.
   - Mitigation: show the app's error/stale state and explain read-only public API dependency.
 - No active races.
-  - Mitigation: use scheduled races or Explore tab if available.
+  - Mitigation: explain the empty state, then refresh or pick the most recent available race when the API returns one.
 - Endpoint shape changed.
   - Mitigation: show raw JSON transparency and tolerant fallback behavior.
 - OBS not installed.

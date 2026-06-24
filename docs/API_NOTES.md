@@ -42,7 +42,8 @@ Fields used when present:
 - Creator.
 - Privacy flag.
 - Start/finish time.
-- Weather, faction, items mode.
+- Weather / track condition.
+- Race type when exposed through race type, source, or join-hook policy fields.
 - Payout fields.
 - Source.
 
@@ -73,6 +74,8 @@ Fields used when present:
 
 - All race summary fields.
 - Result order / final ranking.
+- Entrant/player owner names, usernames, nicknames, and wallet addresses when exposed on result rows or related entrant/player rows.
+- Entry rows, slot, join time, juiced state, finish times, and public owner profile summaries when available.
 - Raw JSON for transparency.
 
 Auth:
@@ -108,21 +111,21 @@ Failure behavior:
 
 - If both selected race detail and race-state fail, the app shows a user-safe error/stale state.
 
-## GET `scheduled`
+## GET `/api/frontend/noob-summary?wallet={ownerAddress}`
 
 Purpose:
 
-- Load scheduled race context for the Explore tab.
+- Resolve public account usernames for race owner wallet addresses so Discord summaries can show owner nicknames when available.
 
 Used by:
 
-- `GigaverseRacingClient.GetScheduledRacesRawAsync`
-- `ExploreDataService.RefreshAsync`
-- `RaceMapper.MapScheduledRaces`
+- `GigaverseRacingClient.GetNoobSummaryRawAsync`
+- `RacePollingService.RefreshSelectedRaceAsync`
 
 Fields used when present:
 
-- Same tolerant fields as recent race summaries.
+- `summary.username`.
+- Public owner account fields such as noob id, energy, pet count, and top racing Gigling metadata when available.
 
 Auth:
 
@@ -130,61 +133,7 @@ Auth:
 
 Failure behavior:
 
-- The Explore tab can still show stats or leaderboard if this endpoint fails.
-
-## GET `stats`
-
-Purpose:
-
-- Load global racing stats for the Explore tab.
-
-Used by:
-
-- `GigaverseRacingClient.GetGlobalStatsRawAsync`
-- `ExploreDataService.RefreshAsync`
-- `RaceMapper.MapGlobalStats`
-
-Fields used when present:
-
-- Simple scalar string, number, and boolean properties are displayed as label/value rows.
-
-Auth:
-
-- Public read-only endpoint. No app auth is sent.
-
-Failure behavior:
-
-- The Explore tab can still show scheduled races or leaderboard if this endpoint fails.
-
-## GET `leaderboard/elo?limit=25&offset=0`
-
-Purpose:
-
-- Load public ELO leaderboard context for the Explore tab.
-
-Used by:
-
-- `GigaverseRacingClient.GetLeaderboardRawAsync`
-- `ExploreDataService.RefreshAsync`
-- `RaceMapper.MapLeaderboard`
-
-Fields used when present:
-
-- Rank.
-- Name / pet name.
-- Pet id.
-- Owner.
-- Faction.
-- Rarity.
-- ELO / rating / score.
-
-Auth:
-
-- Public read-only endpoint. No app auth is sent.
-
-Failure behavior:
-
-- The Explore tab can still show scheduled races or stats if this endpoint fails.
+- Username lookup failures do not make race data fail. The app keeps owner wallet addresses as the fallback display value.
 
 ## Local App Endpoints
 
