@@ -26,9 +26,10 @@ async function poll() {
     }
 
     const state = await response.json();
-    if ((state.updatedAt ?? state.UpdatedAt) !== lastUpdatedAt) {
+    const updatedAt = read(state, "updatedAt", "UpdatedAt") ?? "";
+    if (updatedAt !== lastUpdatedAt) {
       render(state);
-      lastUpdatedAt = state.updatedAt ?? state.UpdatedAt ?? "";
+      lastUpdatedAt = updatedAt;
     }
   } catch (error) {
     renderError(error);
@@ -38,59 +39,73 @@ async function poll() {
 }
 
 function render(state) {
-  const mode = normalizeMode(state.mode ?? state.Mode);
-  const preset = normalizeClass(state.preset ?? state.Preset ?? "Broadcast", "preset");
-  const position = normalizeClass(state.position ?? state.Position ?? "LowerLeft", "position");
-  const race = state.selectedRaceDetail ?? state.SelectedRaceDetail ?? state.selectedRace ?? state.SelectedRace ?? {};
+  const mode = normalizeMode(read(state, "mode", "Mode"));
+  const preset = normalizeClass(read(state, "preset", "Preset") ?? "Broadcast", "preset");
+  const position = normalizeClass(read(state, "position", "Position") ?? "LowerLeft", "position");
+  const race = read(state, "selectedRaceDetail", "SelectedRaceDetail", "selectedRace", "SelectedRace") ?? {};
 
   overlay.className = `overlay mode-${mode} ${preset} ${position}`;
+  overlay.classList.toggle("hidden", mode === "hidden");
   if (mode === "hidden") {
-    overlay.classList.add("hidden");
     return;
   }
 
-  overlay.classList.remove("hidden");
+  const raceId = read(race, "raceId", "RaceId") ?? "unknown";
+  const headline = read(state, "headline", "Headline") ?? `Race #${raceId}`;
 
-  const raceId = race.raceId ?? race.RaceId ?? "unknown";
-  const phase = race.phase ?? race.Phase ?? "Unknown";
-  const entrants = formatEntrants(race);
-  const pool = formatPool(race.pool ?? race.Pool);
-  const track = formatTrack(race.trackLength ?? race.TrackLength);
-  const headline = state.headline ?? state.Headline ?? `Race #${raceId}`;
-
-  fields.headline.textContent = headline;
-  fields.phase.textContent = phase;
-  fields.entrants.textContent = entrants;
-  fields.pool.textContent = pool;
-  fields.track.textContent = track;
-  fields.weather.textContent = race.weather ?? race.Weather ?? "Unknown";
-  fields.items.textContent = race.itemsMode ?? race.ItemsMode ?? "Unknown";
-  fields.lifecycle.textContent = state.lifecycleText ?? state.LifecycleText ?? "";
-  fields.sourceNote.textContent = state.sourceNote ?? state.SourceNote ?? "";
-  fields.resultHeadline.textContent = headline;
-  fields.tickerText.textContent = formatTicker(state);
-  renderResults(race.resultOrder ?? race.ResultOrder ?? []);
+  setText(fields.headline, headline);
+  setText(fields.phase, read(race, "phase", "Phase") ?? "Unknown");
+  setText(fields.entrants, formatEntrants(race));
+  setText(fields.pool, formatPool(read(race, "pool", "Pool")));
+  setText(fields.track, formatTrack(read(race, "trackLength", "TrackLength")));
+  setText(fields.weather, read(race, "weather", "Weather") ?? "Unknown");
+  setText(fields.items, read(race, "itemsMode", "ItemsMode") ?? "Unknown");
+  setText(fields.lifecycle, read(state, "lifecycleText", "LifecycleText") ?? "");
+  setText(fields.sourceNote, read(state, "sourceNote", "SourceNote") ?? "");
+  setText(fields.resultHeadline, headline);
+  setText(fields.tickerText, formatTicker(state));
+  renderResults(read(race, "resultOrder", "ResultOrder") ?? []);
 }
 
 function renderResults(results) {
   fields.results.replaceChildren();
-  if (!Array.isArray(results) || results.length === 0) {
-    const item = document.createElement("li");
-    item.textContent = "Results pending";
-    fields.results.appendChild(item);
+  const safeResults = Array.isArray(results) ? results.slice(0, 6) : [];
+
+  if (safeResults.length === 0) {
+    appendResult("Results pending");
     return;
   }
 
-  for (const result of results.slice(0, 6)) {
-    const item = document.createElement("li");
-    item.textContent = String(result);
-    fields.results.appendChild(item);
+  for (const result of safeResults) {
+    appendResult(String(result));
   }
+}
+
+function appendResult(text) {
+  const item = document.createElement("li");
+  item.textContent = text;
+  fields.results.appendChild(item);
 }
 
 function renderError(error) {
   overlay.className = "overlay mode-ticker";
-  fields.tickerText.textContent = `Gigling Broadcast Deck overlay waiting for local server: ${error.message}`;
+  setText(fields.tickerText, `Gigling Broadcast Deck overlay waiting for local server: ${error.message}`);
+}
+
+function read(source, ...names) {
+  for (const name of names) {
+    if (source && source[name] !== undefined && source[name] !== null) {
+      return source[name];
+    }
+  }
+
+  return undefined;
+}
+
+function setText(element, value) {
+  if (element) {
+    element.textContent = value;
+  }
 }
 
 function normalizeMode(mode) {
@@ -98,20 +113,22 @@ function normalizeMode(mode) {
     return ["hidden", "race-card", "result-card", "ticker"][mode] ?? "hidden";
   }
 
-  return String(mode ?? "Hidden")
+  return toKebab(mode ?? "Hidden");
+}
+
+function normalizeClass(value, prefix) {
+  return `${prefix}-${toKebab(value)}`;
+}
+
+function toKebab(value) {
+  return String(value)
     .replace(/([a-z])([A-Z])/g, "$1-$2")
     .toLowerCase();
 }
 
-function normalizeClass(value, prefix) {
-  return `${prefix}-${String(value)
-    .replace(/([a-z])([A-Z])/g, "$1-$2")
-    .toLowerCase()}`;
-}
-
 function formatEntrants(race) {
-  const current = race.entrantCount ?? race.EntrantCount ?? "?";
-  const max = race.maxEntrants ?? race.MaxEntrants ?? "?";
+  const current = read(race, "entrantCount", "EntrantCount") ?? "?";
+  const max = read(race, "maxEntrants", "MaxEntrants") ?? "?";
   return `${current}/${max}`;
 }
 
@@ -125,17 +142,19 @@ function formatPool(value) {
 }
 
 function formatTrack(value) {
-  if (value === null || value === undefined || value === "") {
-    return "Unknown";
-  }
-
-  return `${value}m`;
+  return value === null || value === undefined || value === "" ? "Unknown" : `${value}m`;
 }
 
 function formatTicker(state) {
-  const rundown = state.rundownItems ?? state.RundownItems ?? [];
-  const items = Array.isArray(rundown) && rundown.length > 0 ? rundown : (state.tickerItems ?? state.TickerItems ?? []);
-  return Array.isArray(items) && items.length > 0 ? items.join("  |  ") : (state.headline ?? state.Headline ?? "Gigling Racing");
+  const rundown = read(state, "rundownItems", "RundownItems") ?? [];
+  const fallback = read(state, "tickerItems", "TickerItems") ?? [];
+  const items = Array.isArray(rundown) && rundown.length > 0 ? rundown : fallback;
+
+  if (Array.isArray(items) && items.length > 0) {
+    return items.join("  |  ");
+  }
+
+  return read(state, "headline", "Headline") ?? "Gigling Racing";
 }
 
 function decimals(value) {
