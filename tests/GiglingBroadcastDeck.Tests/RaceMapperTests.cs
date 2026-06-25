@@ -157,6 +157,32 @@ public sealed class RaceMapperTests
     }
 
     [Fact]
+    public void MapRaceDetail_ReadsFinishTimesFromWrapperRoot()
+    {
+        const string rawJson = """
+        {
+          "data": {
+            "race": {
+              "id": "wrapped-finish",
+              "phase": "RESOLVED",
+              "finalRanking": [24015, 4560]
+            },
+            "entries": [
+              { "petId": 24015, "ownerAddress": "0xowner-a" },
+              { "petId": 4560, "ownerAddress": "0xowner-b" }
+            ],
+            "finishTimes": [56819, 57854]
+          }
+        }
+        """;
+
+        var detail = _mapper.MapRaceDetail(rawJson, "fallback", DateTimeOffset.UnixEpoch);
+
+        Assert.Equal(56819, detail.ResultEntrants[0].FinishTimeMs);
+        Assert.Equal(57854, detail.ResultEntrants[1].FinishTimeMs);
+    }
+
+    [Fact]
     public void MapRecentRaces_ReadsNestedDataRacesWrapper()
     {
         const string rawJson = """

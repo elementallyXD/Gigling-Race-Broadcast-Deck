@@ -202,7 +202,11 @@ public sealed class RacePollingService(
         {
             if (!_ownerProfileCache.ContainsKey(ownerAddress))
             {
-                _ownerProfileCache[ownerAddress] = await TryGetOwnerProfileAsync(ownerAddress, cancellationToken).ConfigureAwait(false);
+                var ownerProfile = await TryGetOwnerProfileAsync(ownerAddress, cancellationToken).ConfigureAwait(false);
+                if (ownerProfile is not null)
+                {
+                    _ownerProfileCache[ownerAddress] = ownerProfile;
+                }
             }
         }
 

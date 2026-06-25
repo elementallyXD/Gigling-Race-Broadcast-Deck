@@ -165,15 +165,55 @@ public sealed class RacePollingServiceTests
         Assert.Equal(34, snapshot.SelectedRaceDetail?.ResultEntrants[1].OwnerPetCount);
     }
 
+    [Fact]
+    public async Task RefreshSelectedRaceAsync_RetriesOwnerProfileAfterTransientFailure()
+    {
+        var client = new ScriptedGigaverseClient(
+            detailResult: ApiFetchResult<string>.Success(
+                """
+                {
+                  "raceId": 13951,
+                  "phase": 3,
+                  "entries": [
+                    { "petId": 24015, "ownerAddress": "0xowner-a" }
+                  ],
+                  "finalRanking": [24015]
+                }
+                """,
+                DateTimeOffset.UnixEpoch),
+            noobSummarySequences: new Dictionary<string, ApiFetchResult<string>[]>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["0xowner-a"] =
+                [
+                    ApiFetchResult<string>.Failure("temporary profile outage", DateTimeOffset.UnixEpoch),
+                    ApiFetchResult<string>.Success("""{ "success": true, "summary": { "username": "vision83" } }""", DateTimeOffset.UnixEpoch.AddSeconds(1))
+                ]
+            });
+        var service = CreateService(client);
+
+        var first = await service.SelectRaceAsync(new RaceSummary { RaceId = "13951" }, CancellationToken.None);
+        var second = await service.RefreshSelectedRaceAsync(CancellationToken.None);
+
+        Assert.Null(first.SelectedRaceDetail?.ResultEntrants[0].OwnerName);
+        Assert.Equal("vision83", second.SelectedRaceDetail?.ResultEntrants[0].OwnerName);
+    }
+
     private sealed class ScriptedGigaverseClient(
         ApiFetchResult<string>[]? recentRaceResults = null,
         ApiFetchResult<string>[]? detailResults = null,
         ApiFetchResult<string>? detailResult = null,
         ApiFetchResult<string>? stateResult = null,
-        IReadOnlyDictionary<string, ApiFetchResult<string>>? noobSummaryResults = null) : IGigaverseRacingClient
+        IReadOnlyDictionary<string, ApiFetchResult<string>>? noobSummaryResults = null,
+        IReadOnlyDictionary<string, ApiFetchResult<string>[]>? noobSummarySequences = null) : IGigaverseRacingClient
     {
         private readonly Queue<ApiFetchResult<string>> _recentRaceResults = new(recentRaceResults ?? []);
         private readonly Queue<ApiFetchResult<string>> _detailResults = new(detailResults ?? []);
+        private readonly Dictionary<string, Queue<ApiFetchResult<string>>> _noobSummarySequences = noobSummarySequences?
+            .ToDictionary(
+                item => item.Key,
+                item => new Queue<ApiFetchResult<string>>(item.Value),
+                StringComparer.OrdinalIgnoreCase)
+            ?? [];
         private readonly ApiFetchResult<string> _detailResult =
             detailResult ?? ApiFetchResult<string>.Success("""{ "id": "race", "phase": "OPEN" }""", DateTimeOffset.UnixEpoch);
         private readonly ApiFetchResult<string> _stateResult =
@@ -197,10 +237,17 @@ public sealed class RacePollingServiceTests
         public Task<ApiFetchResult<string>> GetLeaderboardRawAsync(CancellationToken cancellationToken) =>
             Task.FromResult(ApiFetchResult<string>.Failure("not used", DateTimeOffset.UnixEpoch));
 
-        public Task<ApiFetchResult<string>> GetNoobSummaryRawAsync(string walletAddress, CancellationToken cancellationToken) =>
-            Task.FromResult(noobSummaryResults is not null && noobSummaryResults.TryGetValue(walletAddress, out var result)
+        public Task<ApiFetchResult<string>> GetNoobSummaryRawAsync(string walletAddress, CancellationToken cancellationToken)
+        {
+            if (_noobSummarySequences.TryGetValue(walletAddress, out var sequence) && sequence.Count > 0)
+            {
+                return Task.FromResult(sequence.Dequeue());
+            }
+
+            return Task.FromResult(noobSummaryResults is not null && noobSummaryResults.TryGetValue(walletAddress, out var result)
                 ? result
                 : ApiFetchResult<string>.Failure("not used", DateTimeOffset.UnixEpoch));
+        }
     }
 
     private static RacePollingService CreateService(IGigaverseRacingClient client) =>

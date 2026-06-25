@@ -74,7 +74,9 @@ public sealed class RaceMapper : IRaceMapper
         var livePositions = FirstNonEmptyEntrants(
             ExtractEntrants(true, race, "livePositions", "currentPositions", "positions", "standings", "entrants", "pets", "race.positions"),
             ExtractEntrants(true, root, "livePositions", "currentPositions", "positions", "standings", "race.positions", "data.race.positions", "data.livePositions", "data.currentPositions"));
-        var finishTimes = ReadIntArray(race, "finishTimes", "race.finishTimes", "data.finishTimes", "data.race.finishTimes");
+        var finishTimes = FirstNonEmptyIntArray(
+            ReadIntArray(race, "finishTimes", "race.finishTimes"),
+            ReadIntArray(root, "finishTimes", "race.finishTimes", "data.finishTimes", "data.race.finishTimes"));
         var enrichedResultEntrants = ApplyFinishTimes(EnrichEntrants(resultEntrants, referenceEntrants.Concat(livePositions).ToArray()), finishTimes);
         var resultOrder = enrichedResultEntrants.Select(entrant => entrant.DisplayName).ToArray();
 
@@ -208,6 +210,9 @@ public sealed class RaceMapper : IRaceMapper
 
     private static IReadOnlyList<RaceEntrant> FirstNonEmptyEntrants(params IReadOnlyList<RaceEntrant>[] entrantLists) =>
         entrantLists.FirstOrDefault(entrants => entrants.Count > 0) ?? [];
+
+    private static IReadOnlyList<int> FirstNonEmptyIntArray(params IReadOnlyList<int>[] valueLists) =>
+        valueLists.FirstOrDefault(values => values.Count > 0) ?? [];
 
     private static IReadOnlyList<RaceEntrant> MergeEntrants(params IReadOnlyList<RaceEntrant>[] entrantLists) =>
         entrantLists.SelectMany(entrants => entrants).ToArray();
