@@ -50,5 +50,8 @@ public sealed class ExploreDataServiceTests
 
         public Task<ApiFetchResult<string>> GetLeaderboardRawAsync(CancellationToken cancellationToken) =>
             Task.FromResult(Leaderboard);
+
+        public Task<ApiFetchResult<string>> GetNoobSummaryRawAsync(string walletAddress, CancellationToken cancellationToken) =>
+            Task.FromResult(ApiFetchResult<string>.Failure("not used", DateTimeOffset.UnixEpoch));
     }
 }

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gigling Broadcast Overlay</title>
-  <link rel="stylesheet" href="/overlay.css">
+  <link rel="stylesheet" href="/overlay.css?v=race-type-results-1">
 </head>
 <body>
   <main id="overlay" class="overlay hidden" aria-live="polite">
@@ -22,8 +22,16 @@
           <strong data-field="entrants">?</strong>
         </div>
         <div>
-          <span>Pool</span>
+          <span>Prize Pool</span>
           <strong data-field="pool">Unknown</strong>
+        </div>
+        <div>
+          <span>Entry</span>
+          <strong data-field="entry-fee">Unknown</strong>
+        </div>
+        <div>
+          <span>Type</span>
+          <strong data-field="race-type">Unknown</strong>
         </div>
         <div>
           <span>Track</span>
@@ -34,8 +42,20 @@
           <strong data-field="weather">Unknown</strong>
         </div>
         <div>
-          <span>Items</span>
-          <strong data-field="items">Unknown</strong>
+          <span>Creator</span>
+          <strong data-field="creator">Unknown</strong>
+        </div>
+        <div>
+          <span>Start</span>
+          <strong data-field="race-start">Unknown</strong>
+        </div>
+        <div>
+          <span>Access</span>
+          <strong data-field="access">Public</strong>
+        </div>
+        <div>
+          <span>Source</span>
+          <strong data-field="source">API</strong>
         </div>
       </div>
       <p class="lifecycle" data-field="lifecycle"></p>
@@ -49,12 +69,20 @@
       <ol data-field="results"></ol>
     </section>
 
+    <section id="positions-card" class="panel positions-card">
+      <div class="panel-rim" aria-hidden="true"></div>
+      <p class="eyebrow">Track Position</p>
+      <h1 data-field="positions-headline">Live Positions</h1>
+      <ol data-field="positions"></ol>
+      <p class="source-note" data-field="positions-note"></p>
+    </section>
+
     <section id="ticker" class="ticker">
       <span class="ticker-label">Gigling Live</span>
       <div data-field="ticker-text">Gigling Broadcast Deck</div>
     </section>
   </main>
 
-  <script src="/overlay.js"></script>
+  <script src="/overlay.js?v=race-type-results-1"></script>
 </body>
 </html>

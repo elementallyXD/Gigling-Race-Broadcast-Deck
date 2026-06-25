@@ -12,6 +12,8 @@ public sealed record RaceDetail
     public string RaceId { get; init; } = "";
     public string Phase { get; init; } = "Unknown";
     public IReadOnlyList<string> ResultOrder { get; init; } = [];
+    public IReadOnlyList<RaceEntrant> ResultEntrants { get; init; } = [];
+    public IReadOnlyList<RaceEntrant> LivePositions { get; init; } = [];
     public decimal? Pool { get; init; }
     public decimal? EntryFee { get; init; }
     public int? EntrantCount { get; init; }
@@ -27,8 +29,7 @@ public sealed record RaceDetail
     public IReadOnlyList<decimal> ProjectedPayouts { get; init; } = [];
     public IReadOnlyList<int> PayoutDistribution { get; init; } = [];
     public string? Weather { get; init; }
-    public string? Faction { get; init; }
-    public string? ItemsMode { get; init; }
+    public string? RaceType { get; init; }
     public string? Source { get; init; }
     public DateTimeOffset LastFetchedAt { get; init; }
     public string RawJson { get; init; } = "";

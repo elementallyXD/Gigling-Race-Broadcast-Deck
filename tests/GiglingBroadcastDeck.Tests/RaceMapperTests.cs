@@ -65,6 +65,124 @@ public sealed class RaceMapperTests
     }
 
     [Fact]
+    public void MapRaceDetail_MapsResultOwnersAndLivePositions()
+    {
+        const string rawJson = """
+        {
+          "race": {
+            "id": "race-live",
+            "phase": "RESOLVING",
+            "finalRanking": [
+              { "petId": "101", "petName": "Dash", "ownerName": "alice" },
+              { "petId": "102", "petName": "Bolt", "ownerAddress": "0xabc" }
+            ],
+            "currentPositions": [
+              { "petId": "slow", "petName": "Slowpoke", "ownerName": "carol", "distance": 200 },
+              { "petId": "fast", "petName": "Rocket", "ownerName": "bob", "distance": 800 }
+            ]
+          }
+        }
+        """;
+
+        var detail = _mapper.MapRaceDetail(rawJson, "fallback", DateTimeOffset.UnixEpoch);
+
+        Assert.Equal("Dash", detail.ResultEntrants[0].DisplayName);
+        Assert.Equal("alice", detail.ResultEntrants[0].OwnerName);
+        Assert.Equal("Bolt", detail.ResultEntrants[1].DisplayName);
+        Assert.Equal("0xabc", detail.ResultEntrants[1].OwnerAddress);
+        Assert.Equal("Rocket", detail.LivePositions[0].DisplayName);
+        Assert.Equal("bob", detail.LivePositions[0].OwnerName);
+        Assert.Equal(800, detail.LivePositions[0].Position);
+    }
+
+    [Fact]
+    public void MapRaceDetail_EnrichesResultIdsFromEntrantNicknames()
+    {
+        const string rawJson = """
+        {
+          "data": {
+            "race": {
+              "id": "race-owner-names",
+              "phase": "RESOLVED",
+              "finalRanking": ["101", "102"]
+            },
+            "entrants": [
+              { "petId": "101", "petName": "Dash", "owner": { "nickname": "alice" } },
+              { "giglingId": "102", "giglingName": "Bolt", "player": { "username": "bob" } }
+            ]
+          }
+        }
+        """;
+
+        var detail = _mapper.MapRaceDetail(rawJson, "fallback", DateTimeOffset.UnixEpoch);
+
+        Assert.Equal("Dash", detail.ResultEntrants[0].DisplayName);
+        Assert.Equal("alice", detail.ResultEntrants[0].OwnerName);
+        Assert.Equal("Bolt", detail.ResultEntrants[1].DisplayName);
+        Assert.Equal("bob", detail.ResultEntrants[1].OwnerName);
+    }
+
+    [Fact]
+    public void MapRaceDetail_EnrichesResultIdsFromEntriesAndPetOwners()
+    {
+        const string rawJson = """
+        {
+          "raceId": 13951,
+          "phase": 3,
+          "entries": [
+            { "petId": 24015, "ownerAddress": "0xowner-a", "slot": 1, "juiced": true },
+            { "petId": 4560, "ownerAddress": "0xowner-b" }
+          ],
+          "petOwners": {
+            "14792": "0xowner-c"
+          },
+          "finalRanking": [24015, 4560, 14792],
+          "finishTimes": [56819, 57854, 58383]
+        }
+        """;
+
+        var detail = _mapper.MapRaceDetail(rawJson, "fallback", DateTimeOffset.UnixEpoch);
+
+        Assert.Equal("24015", detail.ResultEntrants[0].DisplayName);
+        Assert.Equal("0xowner-a", detail.ResultEntrants[0].OwnerAddress);
+        Assert.Equal(1, detail.ResultEntrants[0].Slot);
+        Assert.True(detail.ResultEntrants[0].IsJuiced);
+        Assert.Equal(56819, detail.ResultEntrants[0].FinishTimeMs);
+        Assert.Equal("4560", detail.ResultEntrants[1].DisplayName);
+        Assert.Equal("0xowner-b", detail.ResultEntrants[1].OwnerAddress);
+        Assert.Equal(57854, detail.ResultEntrants[1].FinishTimeMs);
+        Assert.Equal("14792", detail.ResultEntrants[2].DisplayName);
+        Assert.Equal("0xowner-c", detail.ResultEntrants[2].OwnerAddress);
+        Assert.Equal(58383, detail.ResultEntrants[2].FinishTimeMs);
+    }
+
+    [Fact]
+    public void MapRaceDetail_ReadsFinishTimesFromWrapperRoot()
+    {
+        const string rawJson = """
+        {
+          "data": {
+            "race": {
+              "id": "wrapped-finish",
+              "phase": "RESOLVED",
+              "finalRanking": [24015, 4560]
+            },
+            "entries": [
+              { "petId": 24015, "ownerAddress": "0xowner-a" },
+              { "petId": 4560, "ownerAddress": "0xowner-b" }
+            ],
+            "finishTimes": [56819, 57854]
+          }
+        }
+        """;
+
+        var detail = _mapper.MapRaceDetail(rawJson, "fallback", DateTimeOffset.UnixEpoch);
+
+        Assert.Equal(56819, detail.ResultEntrants[0].FinishTimeMs);
+        Assert.Equal(57854, detail.ResultEntrants[1].FinishTimeMs);
+    }
+
+    [Fact]
     public void MapRecentRaces_ReadsNestedDataRacesWrapper()
     {
         const string rawJson = """
@@ -100,9 +218,7 @@ public sealed class RaceMapperTests
             "projectedPayouts": ["50000000000000000", "30000000000000000"],
             "payoutDistribution": [6250, 3750],
             "weather": 2,
-            "faction": 8,
-            "items": 3,
-            "source": "indexer"
+            "source": { "type": "manual" }
           }
         }
         """;
@@ -119,9 +235,28 @@ public sealed class RaceMapperTests
         Assert.Equal([0.05m, 0.03m], detail.ProjectedPayouts);
         Assert.Equal([6250, 3750], detail.PayoutDistribution);
         Assert.Equal("Rainy", detail.Weather);
-        Assert.Equal("Gigus", detail.Faction);
-        Assert.Equal("All", detail.ItemsMode);
-        Assert.Equal("indexer", detail.Source);
+        Assert.Equal("Manual", detail.RaceType);
+        Assert.Equal("manual", detail.Source);
+    }
+
+    [Fact]
+    public void MapRaceDetail_MapsRaceTempAsWeather()
+    {
+        const string rawJson = """
+        {
+          "success": true,
+          "raceId": 13952,
+          "phase": 2,
+          "raceTemp": "cold",
+          "source": { "type": "manual" }
+        }
+        """;
+
+        var detail = _mapper.MapRaceDetail(rawJson, "fallback", DateTimeOffset.UnixEpoch);
+
+        Assert.Equal("Cold", detail.Weather);
+        Assert.Equal("Manual", detail.RaceType);
+        Assert.Equal("manual", detail.Source);
     }
 
     [Fact]

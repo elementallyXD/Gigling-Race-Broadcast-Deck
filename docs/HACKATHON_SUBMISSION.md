@@ -23,9 +23,7 @@ The app reads public Gigling Racing REST endpoints for:
 - Recent races.
 - Selected race details.
 - Race-state fallback diagnostics.
-- Scheduled races.
-- Global stats.
-- ELO leaderboard context.
+- Public owner account summaries for username and Gigling profile enrichment.
 
 It normalizes API data into internal models and keeps raw JSON visible for transparency.
 
@@ -36,10 +34,11 @@ It normalizes API data into internal models and keeps raw JSON visible for trans
 - Race card, result card, ticker, and hidden overlay modes.
 - Overlay presets and positions.
 - Recent race polling and selected race refresh.
-- Explore tab for scheduled races, stats, and leaderboard.
+- Race cards with race type, entry fee, prize pool, track length, weather, source, and access details.
+- Resolved result cards with owner names/wallet fallback, finish time, entry slot, juiced state, and available public owner/Gigling profile metadata.
 - Broadcast rundown with pinned ticker lines.
 - Raw JSON transparency panel.
-- Discord summary copy.
+- Discord summary copy with resolved-race places and owner names/addresses when final order data is available.
 - Stale/error/fallback states for public API failures.
 
 ## What Makes It Unique
@@ -62,12 +61,16 @@ Gigling Broadcast Deck is read-only and non-custodial. It does not store private
 
 ## Demo Link
 
-TODO: Add final demo video link.
+Add the hosted 60-90 second video link in the hackathon portal.
 
 ## Repository Link
 
-TODO: Add public repository link.
+Add the public repository URL in the hackathon portal after publishing.
 
 ## Screenshots
 
-TODO: Add operator panel and overlay screenshots.
+Recommended submission screenshots:
+
+- Operator panel with a selected race and raw source JSON collapsed or visible.
+- Overlay race card showing race type, entry fee, and prize pool.
+- Overlay result card showing owner/player and Gigling details for a resolved race.

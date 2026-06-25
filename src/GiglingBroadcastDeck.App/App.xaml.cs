@@ -97,7 +97,6 @@ public partial class App : Application
         services.AddSingleton<IRaceMapper, RaceMapper>();
         services.AddSingleton<IGigaverseRacingClient, GigaverseRacingClient>();
         services.AddSingleton<IRacePollingService, RacePollingService>();
-        services.AddSingleton<IExploreDataService, ExploreDataService>();
         services.AddSingleton<IRacePhaseExplainer, RacePhaseExplainer>();
         services.AddSingleton<IOverlayStateService, OverlayStateService>();
         services.AddSingleton<IClipboardSummaryService, ClipboardSummaryService>();

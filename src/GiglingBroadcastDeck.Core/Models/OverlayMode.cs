@@ -8,5 +8,6 @@ public enum OverlayMode
     Hidden,
     RaceCard,
     ResultCard,
+    Positions,
     Ticker
 }

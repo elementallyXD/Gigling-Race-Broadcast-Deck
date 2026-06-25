@@ -26,8 +26,7 @@ public sealed record RaceSummary
     public IReadOnlyList<decimal> ProjectedPayouts { get; init; } = [];
     public IReadOnlyList<int> PayoutDistribution { get; init; } = [];
     public string? Weather { get; init; }
-    public string? Faction { get; init; }
-    public string? ItemsMode { get; init; }
+    public string? RaceType { get; init; }
     public string? Source { get; init; }
     public DateTimeOffset LastFetchedAt { get; init; }
     public string RawJson { get; init; } = "";

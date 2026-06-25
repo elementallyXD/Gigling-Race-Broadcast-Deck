@@ -81,6 +81,46 @@
         <Style TargetType="ComboBox">
             <Setter Property="Margin" Value="0,4,0,10" />
             <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource EdgeBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="MinHeight" Value="32" />
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource PanelAltBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource ButtonHoverBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#65798D" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="ListBox">
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
@@ -131,7 +171,6 @@
             <DockPanel LastChildFill="True">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Command="{Binding RefreshRacesCommand}" Content="Refresh Races" Margin="12,0,0,0" />
-                    <Button Command="{Binding RefreshExploreCommand}" Content="Refresh Explore" Margin="12,0,0,0" />
                     <Button Command="{Binding HideOverlayCommand}" Content="Hide Overlay" Margin="12,0,0,0" />
                 </StackPanel>
                 <StackPanel>
@@ -148,12 +187,12 @@
                 <Grid Margin="0,14,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="220" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="300" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="400" />
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource PanelBorder}" Margin="0,0,12,12">
@@ -183,7 +222,7 @@
                                 <TextBlock Text="{Binding SelectedRaceDetail.RaceId, StringFormat=Race #{0}}" FontSize="28" FontWeight="Bold" Margin="0,12,0,0" />
                                 <TextBlock Text="{Binding SelectedRaceDetail.Phase, StringFormat=Phase: {0}}" Foreground="{StaticResource AccentBrush}" FontSize="18" FontWeight="SemiBold" />
 
-                                <UniformGrid Columns="4" Margin="0,18,0,12">
+                                <UniformGrid Columns="3" Margin="0,18,0,12">
                                     <Border Style="{StaticResource StatCard}">
                                         <StackPanel>
                                             <TextBlock Text="Entrants" Style="{StaticResource MutedText}" />
@@ -198,7 +237,7 @@
                                     </Border>
                                     <Border Style="{StaticResource StatCard}">
                                         <StackPanel>
-                                            <TextBlock Text="Pool" Style="{StaticResource MutedText}" />
+                                            <TextBlock Text="Prize Pool" Style="{StaticResource MutedText}" />
                                             <TextBlock Text="{Binding SelectedRaceDetail.Pool, StringFormat={}{0:0.####} ETH, TargetNullValue=?}" FontSize="22" FontWeight="Bold" />
                                         </StackPanel>
                                     </Border>
@@ -208,12 +247,24 @@
                                             <TextBlock Text="{Binding SelectedRaceDetail.TrackLength, StringFormat={}{0}m, TargetNullValue=?}" FontSize="22" FontWeight="Bold" />
                                         </StackPanel>
                                     </Border>
+                                    <Border Style="{StaticResource StatCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Entry Fee" Style="{StaticResource MutedText}" />
+                                            <TextBlock Text="{Binding SelectedRaceDetail.EntryFee, StringFormat={}{0:0.####} ETH, TargetNullValue=?}" FontSize="22" FontWeight="Bold" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource StatCard}">
+                                        <StackPanel>
+                                            <TextBlock Text="Race Type" Style="{StaticResource MutedText}" />
+                                            <TextBlock Text="{Binding SelectedRaceDetail.RaceType, TargetNullValue=?}" FontSize="22" FontWeight="Bold" />
+                                        </StackPanel>
+                                    </Border>
                                 </UniformGrid>
 
                                 <UniformGrid Columns="3" Margin="0,0,0,12">
+                                    <TextBlock Text="{Binding SelectedRaceDetail.RaceType, StringFormat=Type: {0}, TargetNullValue=Type: ?}" Style="{StaticResource MutedText}" />
                                     <TextBlock Text="{Binding SelectedRaceDetail.Weather, StringFormat=Weather: {0}, TargetNullValue=Weather: ?}" Style="{StaticResource MutedText}" />
-                                    <TextBlock Text="{Binding SelectedRaceDetail.Faction, StringFormat=Faction: {0}, TargetNullValue=Faction: ?}" Style="{StaticResource MutedText}" />
-                                    <TextBlock Text="{Binding SelectedRaceDetail.ItemsMode, StringFormat=Items: {0}, TargetNullValue=Items: ?}" Style="{StaticResource MutedText}" />
+                                    <TextBlock Text="{Binding SelectedRaceDetail.Source, StringFormat=Source: {0}, TargetNullValue=Source: public API}" Style="{StaticResource MutedText}" />
                                 </UniformGrid>
 
                                 <TextBlock Text="Lifecycle" FontWeight="Bold" Margin="0,8,0,4" />
@@ -234,6 +285,32 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <TextBlock Text="Player &amp; Gigling Details" FontWeight="Bold" Margin="0,16,0,4" />
+                                <ItemsControl ItemsSource="{Binding SelectedRaceDetail.ResultEntrants}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#0F1822" BorderBrush="#223B54" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding DisplayName, StringFormat=Gigling {0}}" FontWeight="Bold" />
+                                                    <WrapPanel Margin="0,4,0,0">
+                                                        <TextBlock Text="{Binding OwnerName, StringFormat=Owner: {0}, TargetNullValue=Owner: ?}" Style="{StaticResource MutedText}" Margin="0,0,14,0" />
+                                                        <TextBlock Text="{Binding OwnerAddress, StringFormat=Wallet: {0}, TargetNullValue=Wallet: ?}" Style="{StaticResource MutedText}" Margin="0,0,14,0" />
+                                                        <TextBlock Text="{Binding Slot, StringFormat=Slot: {0}, TargetNullValue=Slot: ?}" Style="{StaticResource MutedText}" Margin="0,0,14,0" />
+                                                        <TextBlock Text="{Binding FinishTimeMs, StringFormat=Finish: {0} ms, TargetNullValue=Finish: ?}" Style="{StaticResource MutedText}" Margin="0,0,14,0" />
+                                                        <TextBlock Text="{Binding IsJuiced, StringFormat=Juiced: {0}, TargetNullValue=Juiced: ?}" Style="{StaticResource MutedText}" />
+                                                    </WrapPanel>
+                                                    <WrapPanel Margin="0,4,0,0">
+                                                        <TextBlock Text="{Binding PetRarity, StringFormat=Rarity: {0}, TargetNullValue=Rarity: ?}" Style="{StaticResource MutedText}" Margin="0,0,14,0" />
+                                                        <TextBlock Text="{Binding PetGender, StringFormat=Gender: {0}, TargetNullValue=Gender: ?}" Style="{StaticResource MutedText}" Margin="0,0,14,0" />
+                                                        <TextBlock Text="{Binding PetElo, StringFormat=ELO: {0:0}, TargetNullValue=ELO: ?}" Style="{StaticResource MutedText}" Margin="0,0,14,0" />
+                                                        <TextBlock Text="{Binding OwnerPetCount, StringFormat=Stable: {0} pets, TargetNullValue=Stable: ?}" Style="{StaticResource MutedText}" />
+                                                    </WrapPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </ScrollViewer>
                     </Border>
@@ -249,6 +326,10 @@
 
                                 <Button Command="{Binding ShowRaceCardCommand}" Content="Show Race Card" />
                                 <Button Command="{Binding ShowResultCardCommand}" Content="Show Result Card" />
+                                <Button Command="{Binding ShowPositionsCommand}"
+                                        Content="Show Positions"
+                                        IsEnabled="False"
+                                        ToolTip="Temporarily disabled while live position rendering is refined." />
                                 <Button Command="{Binding ShowTickerCommand}" Content="Show Ticker" />
                                 <Button Command="{Binding HideOverlayCommand}" Content="Hide Overlay" />
                                 <Button Command="{Binding CopyDiscordSummaryCommand}" Content="Copy Discord Summary" />
@@ -258,83 +339,32 @@
                                 <Button Command="{Binding AddRundownLineCommand}" Content="Pin Ticker Line" />
                                 <Button Command="{Binding AddSelectedRaceToRundownCommand}" Content="Pin Selected Race" />
                                 <Button Command="{Binding ClearRundownCommand}" Content="Clear Rundown" />
-                                <ListBox ItemsSource="{Binding RundownItems}" MinHeight="110" />
+                                <ListBox ItemsSource="{Binding RundownItems}"
+                                         MinHeight="110"
+                                         MouseDoubleClick="RundownItems_MouseDoubleClick" />
                             </StackPanel>
                         </ScrollViewer>
                     </Border>
 
                     <Border Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource PanelBorder}">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Top" Text="Raw Source JSON" FontSize="18" FontWeight="Bold" Margin="0,0,0,8" />
-                            <TextBox Text="{Binding RawJson}" FontFamily="Consolas" FontSize="12" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />
-                        </DockPanel>
+                        <Expander Header="Raw Source JSON"
+                                  IsExpanded="False"
+                                  Foreground="{StaticResource TextBrush}">
+                            <TextBox Text="{Binding RawJson, Mode=OneWay}"
+                                     FontFamily="Consolas"
+                                     FontSize="11"
+                                     IsReadOnly="True"
+                                     AcceptsReturn="True"
+                                     TextWrapping="NoWrap"
+                                     MinHeight="140"
+                                     MaxHeight="180"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto" />
+                        </Expander>
                     </Border>
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Explore">
-                <Grid Margin="0,14,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="{Binding ExploreStatusText}" Foreground="#BDD2E5" Margin="0,0,0,12" />
-                    <Grid Grid.Row="1">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="300" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Style="{StaticResource PanelBorder}" Margin="0,0,12,0">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="Scheduled Races" Style="{StaticResource SectionTitle}" />
-                                <ListBox ItemsSource="{Binding ScheduledRaces}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Margin="0,0,0,10">
-                                                <TextBlock Text="{Binding RaceId, StringFormat=Race #{0}}" FontWeight="Bold" />
-                                                <TextBlock Text="{Binding Phase}" Foreground="{StaticResource AccentBrush}" />
-                                                <TextBlock Text="{Binding TrackLength, StringFormat=Track: {0}m, TargetNullValue=Track: ?}" Style="{StaticResource MutedText}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-                        <Border Grid.Column="1" Style="{StaticResource PanelBorder}" Margin="0,0,12,0">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="Global Stats" Style="{StaticResource SectionTitle}" />
-                                <ListBox ItemsSource="{Binding GlobalStats}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <DockPanel Margin="0,0,0,8">
-                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" FontWeight="Bold" />
-                                                <TextBlock Text="{Binding Label}" Style="{StaticResource MutedText}" />
-                                            </DockPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-                        <Border Grid.Column="2" Style="{StaticResource PanelBorder}">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="ELO Leaderboard" Style="{StaticResource SectionTitle}" />
-                                <ListBox ItemsSource="{Binding Leaderboard}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Margin="0,0,0,10">
-                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" />
-                                                <TextBlock Text="{Binding Elo, StringFormat=ELO: {0:0.##}, TargetNullValue=ELO: ?}" Foreground="{StaticResource AccentBrush}" />
-                                                <TextBlock Text="{Binding Faction, StringFormat=Faction: {0}, TargetNullValue=Faction: ?}" Style="{StaticResource MutedText}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-                    </Grid>
-                </Grid>
-            </TabItem>
         </TabControl>
 
         <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource EdgeBrush}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,14,0,0">
