@@ -55,7 +55,7 @@ Gigaverse public API
 
 - `GigaverseRacingClient`: performs read-only public `GET` requests and returns raw JSON or safe failure results.
 - `RaceMapper`: normalizes changing JSON shapes into nullable app-owned models.
-- `RacePollingService`: refreshes recent races and selected race detail, preserves last good data on failures.
+- `RacePollingService`: refreshes recent races and selected race detail, enriches owner profiles from public account summaries, and preserves last good data on failures.
 - `OverlayStateService`: stores the current overlay mode, selected race, preset, position, and rundown items.
 - `LocalOverlayServer`: hosts the local overlay page and JSON endpoints.
 - `MainWindowViewModel`: coordinates UI commands, timers, selected race state, overlay state, and summaries.
@@ -78,6 +78,7 @@ Static files are served from `src/GiglingBroadcastDeck.App/wwwroot` during devel
 - Recent races refresh every `Polling:RecentRacesSeconds` seconds, default `15`.
 - Selected race details refresh every `Polling:SelectedRaceSeconds` seconds, default `5`.
 - Overlapping polling calls are skipped by a lightweight gate.
+- Owner profile lookups are cached only after successful responses, so transient username/profile failures are retried on later selected-race refreshes.
 - The overlay page polls `/api/overlay-state` every `Overlay:PollMs` milliseconds, default `1000`.
 - Realtime support is disabled for the MVP.
 

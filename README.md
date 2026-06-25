@@ -2,7 +2,7 @@
 
 Gigling Broadcast Deck is a Windows desktop operator panel and OBS Browser Source overlay for Gigling Racing streams.
 
-It turns public Gigling Racing race data into clear race cards, result cards, ticker copy, and source-data transparency for creators.
+It turns public Gigling Racing race data into clear race cards, result cards, ticker copy, Discord summaries, and source-data transparency for creators.
 
 ## Problem
 
@@ -15,7 +15,8 @@ Gigling Racing data is useful on stream, but raw API responses are not easy to p
 - Preserves raw JSON so race data can be verified during a demo.
 - Serves a local overlay at `http://localhost:5050/overlay`.
 - Lets an operator show a race card, result card, ticker, or hidden overlay.
-- Shows race card metadata such as phase, entrants, pool, track, weather/temperature, creator, start time, access, and source when available.
+- Shows race card metadata such as phase, entrants, prize pool, entry fee, race type, track, weather/temperature, creator, start time, access, and source when available.
+- Shows resolved result cards with owner names, wallet fallback, entry slot, juiced state, finish time, and public owner/Gigling profile details when available.
 - Lets an operator pin and clear rundown/ticker lines.
 - Copies a detailed Discord-friendly race summary, including result places and owner names/addresses when a resolved race exposes that data.
 
@@ -23,6 +24,7 @@ Gigling Racing data is useful on stream, but raw API responses are not easy to p
 
 - WPF desktop operator panel.
 - Public REST polling with stale/error states.
+- Public owner-profile enrichment with retry after transient lookup failures.
 - ASP.NET Core Minimal API localhost server.
 - Static HTML/CSS/JS OBS overlay.
 - Overlay modes: `Hidden`, `RaceCard`, `ResultCard`, `Ticker`.
@@ -135,6 +137,7 @@ All calls are public read-only `GET` requests under `Gigaverse:BaseUrl`, default
 - `GET races?limit={RaceLimit}`
 - `GET race/{raceId}`
 - `GET race-state?raceId={raceId}`
+- `GET /api/frontend/noob-summary?wallet={ownerAddress}`
 
 Details: [docs/API_NOTES.md](docs/API_NOTES.md).
 
@@ -168,13 +171,14 @@ Operator preferences are stored in the current user's local app data folder and 
 - Primary demo path: select a race, show raw source data, send race card/ticker/result card to OBS, copy a Discord summary with final places and owners for resolved races when available.
 - Safety statement: the app is read-only and non-custodial; it never signs transactions or automates gameplay.
 
-## Screenshots / GIFs
+## Demo Assets
 
-Add final assets here before submission:
+Recommended assets for the hackathon submission portal:
 
-- TODO: operator panel screenshot.
-- TODO: overlay race card screenshot.
-- TODO: 60-90 second demo GIF or video link.
+- Operator panel screenshot with a selected race.
+- Overlay race card screenshot at `http://localhost:5050/overlay`.
+- Overlay result card screenshot for a resolved race.
+- 60-90 second demo video or GIF following `docs/TESTING_AND_DEMO.md`.
 
 ## Documentation
 
@@ -185,4 +189,4 @@ Add final assets here before submission:
 
 ## License
 
-License: TBD. Add a final license before public release.
+MIT. See [LICENSE.md](LICENSE.md).

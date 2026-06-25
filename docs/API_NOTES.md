@@ -133,7 +133,8 @@ Auth:
 
 Failure behavior:
 
-- Username lookup failures do not make race data fail. The app keeps owner wallet addresses as the fallback display value.
+- Username/profile lookup failures do not make race data fail. The app keeps owner wallet addresses as the fallback display value.
+- Failed or empty profile lookups are not permanently cached; later selected-race refreshes retry them.
 
 ## Local App Endpoints
 
