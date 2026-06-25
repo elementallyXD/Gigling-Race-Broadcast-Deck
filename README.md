@@ -173,12 +173,19 @@ Operator preferences are stored in the current user's local app data folder and 
 
 ## Demo Assets
 
-Recommended assets for the hackathon submission portal:
+Demo videos:
 
-- Operator panel screenshot with a selected race.
-- Overlay race card screenshot at `http://localhost:5050/overlay`.
-- Overlay result card screenshot for a resolved race.
-- 60-90 second demo video or GIF following `docs/TESTING_AND_DEMO.md`.
+- [Real-world usage video](demo/RealWorldUsage.mp4)
+
+Screenshots:
+
+| Operator App | Race Summary |
+| --- | --- |
+| ![Gigling Broadcast Deck application](screenshots/application.png) | ![Race summary panel](screenshots/Racing_summary.png) |
+
+| Race Card Overlay | Race Results Overlay |
+| --- | --- |
+| ![Race card overlay](screenshots/ShowRacingCard.png) | ![Race results overlay](screenshots/ShowRacingResults.png) |
 
 ## Documentation
 
