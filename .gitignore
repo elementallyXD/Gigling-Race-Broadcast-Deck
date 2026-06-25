@@ -103,3 +103,6 @@ node_modules/
 .codex/
 
 3rd-partys/
+
+# Large local demo recordings should be hosted outside Git or tracked with Git LFS.
+demo/Demo.mp4
