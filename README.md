@@ -34,20 +34,6 @@ Gigling Racing data is useful on stream, but raw API responses are not easy to p
 - Loading, empty, API-error, stale-data, fallback, and unavailable-endpoint states.
 - Self-contained Windows publish script.
 
-## Not Supported
-
-This project is intentionally read-only.
-
-- No wallet custody.
-- No private key or seed phrase handling.
-- No transaction signing.
-- No race joining.
-- No reward claiming.
-- No item usage.
-- No auto-play or gameplay automation.
-- No authenticated gameplay POST endpoints.
-- No OBS WebSocket control in the MVP.
-
 ## Architecture Overview
 
 ```text
@@ -93,6 +79,8 @@ dotnet build GiglingBroadcastDeck.slnx --configuration Release
 ```powershell
 dotnet run --project .\src\GiglingBroadcastDeck.App\GiglingBroadcastDeck.App.csproj
 ```
+
+Or download the release from the GitHub repository and run the .exe file.
 
 Default local URLs:
 
@@ -165,16 +153,10 @@ Operator preferences are stored in the current user's local app data folder and 
 - There is no built-in mock data mode yet.
 - The publish output is a self-contained folder, not a signed installer.
 
-## Hackathon Submission Notes
-
-- Suggested category fit: player/creator tools, analytics, broadcast utility, developer-facing transparency.
-- Primary demo path: select a race, show raw source data, send race card/ticker/result card to OBS, copy a Discord summary with final places and owners for resolved races when available.
-- Safety statement: the app is read-only and non-custodial; it never signs transactions or automates gameplay.
-
 ## Demo Assets
 
 Demo videos:
-
+- [Demo how to use](https://youtu.be/4aaFGBiy4G8)
 - [Real-world usage video](demo/RealWorldUsage.mp4)
 
 Screenshots:
